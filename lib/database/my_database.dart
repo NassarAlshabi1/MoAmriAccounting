@@ -1,8 +1,8 @@
 import 'dart:io' as io;
 import 'package:path/path.dart' as p;
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:sqflite/sqflite.dart' as sqflite;
+import 'package:sqflite/sqflite.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'entities/audit.dart';
 import 'entities/store.dart';
@@ -12,51 +12,52 @@ import 'entities/user.dart';
 class MyDatabase {
   static late Database myDatabase;
 
+  /// Initialize database factory for desktop platforms
+  static void _initDatabaseFactory() {
+    if (io.Platform.isWindows || io.Platform.isLinux || io.Platform.isMacOS) {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+    }
+  }
+
   /// create tables if not exist and triggers
   static Future<void> open() async {
+    _initDatabaseFactory();
+
     String dbPath;
-
-    if (io.Platform.isWindows || io.Platform.isLinux || io.Platform.isMacOS) {
-      // Desktop platforms - use sqflite_common_ffi
-      sqfliteFfiInit();
-      var databaseFactory = databaseFactoryFfi;
-      final io.Directory appDocumentsDir =
-          await getApplicationDocumentsDirectory();
+    
+    // Get database path
+    if (io.Platform.isAndroid || io.Platform.isIOS) {
+      dbPath = await getDatabasesPath();
+      dbPath = p.join(dbPath, "myDb.db");
+    } else {
+      // Desktop platforms
+      final io.Directory appDocumentsDir = await getApplicationDocumentsDirectory();
       dbPath = p.join(appDocumentsDir.path, "databases", "myDb.db");
-
+      
       // Ensure the directory exists
       final dbDir = io.Directory(p.dirname(dbPath));
       if (!await dbDir.exists()) {
         await dbDir.create(recursive: true);
       }
-
-      myDatabase = await databaseFactory.openDatabase(dbPath);
-    } else {
-      // Mobile platforms (Android/iOS) - use regular sqflite
-      final databasesPath = await sqflite.getDatabasesPath();
-      dbPath = p.join(databasesPath, "myDb.db");
-      myDatabase = await sqflite.openDatabase(
-        dbPath,
-        version: 1,
-        onCreate: (db, version) async {
-          await _createTables(db);
-        },
-      );
     }
 
-    // this is for making on delete cascade works
-    await myDatabase.execute("PRAGMA foreign_keys=ON");
-
-    // Create tables if they don't exist (for mobile platforms, this is handled in onCreate)
-    if (io.Platform.isWindows || io.Platform.isLinux || io.Platform.isMacOS) {
-      await _createTables(myDatabase);
-    }
+    // Open database with version control
+    myDatabase = await openDatabase(
+      dbPath,
+      version: 1,
+      onCreate: (Database db, int version) async {
+        await _createTables(db);
+      },
+      onOpen: (Database db) async {
+        // Enable foreign keys
+        await db.execute("PRAGMA foreign_keys=ON");
+      },
+    );
   }
 
   static Future<void> _createTables(Database db) async {
-    // data should be store a map data of change
-    // user_data should be user map data
-    // user_id just in case we want to query all user action
+    // Audits table
     await db.execute('''
     CREATE TABLE IF NOT EXISTS audits(
       date INTEGER PRIMARY KEY, 
@@ -69,6 +70,8 @@ class MyDatabase {
       user_data TEXT NOT NULL
     )
     ''');
+    
+    // Currencies table
     await db.execute('''
     CREATE TABLE IF NOT EXISTS currencies (
       name TEXT PRIMARY KEY,
@@ -77,6 +80,7 @@ class MyDatabase {
     )
     ''');
 
+    // Store table
     await db.execute('''
     CREATE TABLE IF NOT EXISTS store (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -90,6 +94,7 @@ class MyDatabase {
     )
     ''');
 
+    // Users table
     await db.execute('''
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -100,34 +105,27 @@ class MyDatabase {
       role TEXT CHECK( role IN ('admin','cashier') ) NOT NULL DEFAULT 'cashier'
     )
     ''');
-    await db.execute(
-      '''
-    BEGIN TRANSACTION;
-    UPDATE sqlite_sequence SET seq = 100000 WHERE name = 'users';
-    INSERT INTO sqlite_sequence (name,seq) SELECT 'users', 100000 WHERE NOT EXISTS 
-              (SELECT changes() AS change FROM sqlite_sequence WHERE change <> 0);
-    COMMIT;
-    ''',
-    );
+    
+    await db.execute('''
+    INSERT OR IGNORE INTO sqlite_sequence (name, seq) VALUES ('users', 100000)
+    ''');
 
+    // Units table
     await db.execute('''
     CREATE TABLE IF NOT EXISTS units (
       name TEXT PRIMARY KEY
     )
     ''');
-    // insert the default units
-    await db.insert('units', {'name': 'قطعة'},
-        conflictAlgorithm: ConflictAlgorithm.ignore);
-    await db.insert('units', {'name': 'كيلو'},
-        conflictAlgorithm: ConflictAlgorithm.ignore);
-    await db.insert('units', {'name': 'طن'},
-        conflictAlgorithm: ConflictAlgorithm.ignore);
-    await db.insert('units', {'name': 'جرام'},
-        conflictAlgorithm: ConflictAlgorithm.ignore);
-    await db.insert('units', {'name': 'متر'},
-        conflictAlgorithm: ConflictAlgorithm.ignore);
-    await db.insert('units', {'name': 'سم'},
-        conflictAlgorithm: ConflictAlgorithm.ignore);
+    
+    // Insert default units
+    await db.insert('units', {'name': 'قطعة'}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    await db.insert('units', {'name': 'كيلو'}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    await db.insert('units', {'name': 'طن'}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    await db.insert('units', {'name': 'جرام'}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    await db.insert('units', {'name': 'متر'}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    await db.insert('units', {'name': 'سم'}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    
+    // Materials table
     await db.execute('''
     CREATE TABLE IF NOT EXISTS materials (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -145,6 +143,7 @@ class MyDatabase {
     )
     ''');
 
+    // Expiries dates table
     await db.execute('''
     CREATE TABLE IF NOT EXISTS expiries_dates (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -154,6 +153,7 @@ class MyDatabase {
     )
     ''');
 
+    // Customers table
     await db.execute('''
     CREATE TABLE IF NOT EXISTS customers(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -163,16 +163,12 @@ class MyDatabase {
       description TEXT
     )
     ''');
-    await db.execute(
-      '''
-    BEGIN TRANSACTION;
-    UPDATE sqlite_sequence SET seq = 100000 WHERE name = 'customers';
-    INSERT INTO sqlite_sequence (name,seq) SELECT 'customers', 100000 WHERE NOT EXISTS 
-              (SELECT changes() AS change FROM sqlite_sequence WHERE change <> 0);
-    COMMIT;
-    ''',
-    );
+    
+    await db.execute('''
+    INSERT OR IGNORE INTO sqlite_sequence (name, seq) VALUES ('customers', 100000)
+    ''');
 
+    // Invoices table
     await db.execute('''
     CREATE TABLE IF NOT EXISTS invoices (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -184,16 +180,12 @@ class MyDatabase {
       note TEXT
     )
     ''');
-    await db.execute(
-      '''
-    BEGIN TRANSACTION;
-    UPDATE sqlite_sequence SET seq = 100000 WHERE name = 'invoices';
-    INSERT INTO sqlite_sequence (name,seq) SELECT 'invoices', 100000 WHERE NOT EXISTS 
-              (SELECT changes() AS change FROM sqlite_sequence WHERE change <> 0);
-    COMMIT;
-    ''',
-    );
+    
+    await db.execute('''
+    INSERT OR IGNORE INTO sqlite_sequence (name, seq) VALUES ('invoices', 100000)
+    ''');
 
+    // Invoices materials table
     await db.execute('''
     CREATE TABLE IF NOT EXISTS invoices_materials (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -205,6 +197,7 @@ class MyDatabase {
     )
     ''');
 
+    // Payments table
     await db.execute("""
     CREATE TABLE IF NOT EXISTS payments(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -217,17 +210,12 @@ class MyDatabase {
       note TEXT
     )
     """);
+    
+    await db.execute('''
+    INSERT OR IGNORE INTO sqlite_sequence (name, seq) VALUES ('payments', 100000)
+    ''');
 
-    await db.execute(
-      '''
-    BEGIN TRANSACTION;
-    UPDATE sqlite_sequence SET seq = 100000 WHERE name = 'payments';
-    INSERT INTO sqlite_sequence (name,seq) SELECT 'payments', 100000 WHERE NOT EXISTS 
-              (SELECT changes() AS change FROM sqlite_sequence WHERE change <> 0);
-    COMMIT;
-    ''',
-    );
-    // here we can not delete the customer except if we delete all his/her debts
+    // Debts table
     await db.execute("""
     CREATE TABLE IF NOT EXISTS debts(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -238,17 +226,12 @@ class MyDatabase {
       note TEXT
     )
     """);
+    
+    await db.execute('''
+    INSERT OR IGNORE INTO sqlite_sequence (name, seq) VALUES ('debts', 100000)
+    ''');
 
-    await db.execute(
-      '''
-    BEGIN TRANSACTION;
-    UPDATE sqlite_sequence SET seq = 100000 WHERE name = 'debts';
-    INSERT INTO sqlite_sequence (name,seq) SELECT 'debts', 100000 WHERE NOT EXISTS 
-              (SELECT changes() AS change FROM sqlite_sequence WHERE change <> 0);
-    COMMIT;
-    ''',
-    );
-    // Debt payments table - for tracking partial debt payments
+    // Debt payments table
     await db.execute("""
     CREATE TABLE IF NOT EXISTS debt_payments(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -261,15 +244,12 @@ class MyDatabase {
       note TEXT
     )
     """);
-    await db.execute(
-      '''
-    BEGIN TRANSACTION;
-    UPDATE sqlite_sequence SET seq = 100000 WHERE name = 'debt_payments';
-    INSERT INTO sqlite_sequence (name,seq) SELECT 'debt_payments', 100000 WHERE NOT EXISTS 
-              (SELECT changes() AS change FROM sqlite_sequence WHERE change <> 0);
-    COMMIT;
-    ''',
-    );
+    
+    await db.execute('''
+    INSERT OR IGNORE INTO sqlite_sequence (name, seq) VALUES ('debt_payments', 100000)
+    ''');
+
+    // Suppliers table
     await db.execute('''
     CREATE TABLE IF NOT EXISTS suppliers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -280,16 +260,12 @@ class MyDatabase {
       description TEXT
     )
     ''');
+    
+    await db.execute('''
+    INSERT OR IGNORE INTO sqlite_sequence (name, seq) VALUES ('suppliers', 100000)
+    ''');
 
-    await db.execute(
-      '''
-    BEGIN TRANSACTION;
-    UPDATE sqlite_sequence SET seq = 100000 WHERE name = 'suppliers';
-    INSERT INTO sqlite_sequence (name,seq) SELECT 'suppliers', 100000 WHERE NOT EXISTS 
-              (SELECT changes() AS change FROM sqlite_sequence WHERE change <> 0);
-    COMMIT;
-    ''',
-    );
+    // Purchases table
     await db.execute('''
     CREATE TABLE IF NOT EXISTS purchases (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -300,16 +276,12 @@ class MyDatabase {
       note TEXT
     )
     ''');
+    
+    await db.execute('''
+    INSERT OR IGNORE INTO sqlite_sequence (name, seq) VALUES ('purchases', 100000)
+    ''');
 
-    await db.execute(
-      '''
-    BEGIN TRANSACTION;
-    UPDATE sqlite_sequence SET seq = 100000 WHERE name = 'purchases';
-    INSERT INTO sqlite_sequence (name,seq) SELECT 'purchases', 100000 WHERE NOT EXISTS 
-              (SELECT changes() AS change FROM sqlite_sequence WHERE change <> 0);
-    COMMIT;
-    ''',
-    );
+    // Purchases materials table
     await db.execute('''
     CREATE TABLE IF NOT EXISTS purchases_materials (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -321,6 +293,7 @@ class MyDatabase {
     )
     ''');
 
+    // Purchases payments table
     await db.execute("""
     CREATE TABLE IF NOT EXISTS purchases_payments(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -332,17 +305,12 @@ class MyDatabase {
       note TEXT
     )
     """);
+    
+    await db.execute('''
+    INSERT OR IGNORE INTO sqlite_sequence (name, seq) VALUES ('purchases_payments', 100000)
+    ''');
 
-    await db.execute(
-      '''
-    BEGIN TRANSACTION;
-    UPDATE sqlite_sequence SET seq = 100000 WHERE name = 'purchases_payments';
-    INSERT INTO sqlite_sequence (name,seq) SELECT 'purchases_payments', 100000 WHERE NOT EXISTS 
-              (SELECT changes() AS change FROM sqlite_sequence WHERE change <> 0);
-    COMMIT;
-    ''',
-    );
-    // here we can not delete the customer except if we delete all his/her debts
+    // Purchases debts table
     await db.execute("""
     CREATE TABLE IF NOT EXISTS purchases_debts(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -354,16 +322,10 @@ class MyDatabase {
       note TEXT
     )
     """);
-
-    await db.execute(
-      '''
-    BEGIN TRANSACTION;
-    UPDATE sqlite_sequence SET seq = 100000 WHERE name = 'purchases_debts';
-    INSERT INTO sqlite_sequence (name,seq) SELECT 'purchases_debts', 100000 WHERE NOT EXISTS 
-              (SELECT changes() AS change FROM sqlite_sequence WHERE change <> 0);
-    COMMIT;
-    ''',
-    );
+    
+    await db.execute('''
+    INSERT OR IGNORE INTO sqlite_sequence (name, seq) VALUES ('purchases_debts', 100000)
+    ''');
   }
 
   static Future<Store?> getStoreData() async {

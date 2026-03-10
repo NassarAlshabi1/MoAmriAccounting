@@ -23,9 +23,18 @@ class _HomePageState extends State<HomePage> {
   PageController pageController = PageController();
   int selectedPage = 0;
 
+  bool get _isDesktop => Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+
   @override
   void initState() {
-    WindowOptions windowOptions = const WindowOptions(
+    super.initState();
+    if (_isDesktop) {
+      _initWindow();
+    }
+  }
+
+  void _initWindow() {
+    const WindowOptions windowOptions = WindowOptions(
       size: Size(800, 600),
       minimumSize: Size(800, 600),
       center: true,
@@ -37,374 +46,43 @@ class _HomePageState extends State<HomePage> {
       await windowManager.show();
       await windowManager.focus();
     });
-    super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     final MainController mainController = Get.find();
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        appBar: AppBar(
-          centerTitle: true,
-          automaticallyImplyLeading: false,
-          title: DragToMoveArea(
-            child: Row(
-              children: [
-                Text(
-                  mainController.storeData.value?.name ?? "",
-                ),
-              ],
-            ),
-          ),
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
-          actions: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 5),
-              child: IconButton(
-                onPressed: () async {
-                  await windowManager.setMinimumSize(Size.zero);
-                  await windowManager.minimize();
-                },
-                icon: const Icon(Icons.minimize),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 5),
-              child: IconButton(
-                onPressed: () async {
-                  if (await windowManager.isMaximized()) {
-                    await windowManager.unmaximize();
-                  } else {
-                    await windowManager.setMaximumSize(Size.infinite);
-                    windowManager.maximize();
-                  }
-                },
-                icon: const Icon(
-                  Icons.crop_square,
-                  color: Colors.green,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 0, 0, 0),
-              child: IconButton(
-                onPressed: () {
-                  exit(0);
-                },
-                icon: const Icon(
-                  Icons.close,
-                  color: Colors.red,
-                ),
-              ),
-            ),
-          ],
-        ),
+        appBar: _isDesktop ? _buildDesktopAppBar(mainController) : _buildMobileAppBar(mainController),
         body: Column(
           children: [
-            const Divider(
-              height: 1,
-            ),
+            const Divider(height: 1),
             Expanded(
               child: Row(
                 children: [
-                  SideMenu(
-                    mode: SideMenuMode.open,
-                    hasResizerToggle: false,
-                    hasResizer: false,
-                    builder: (data) => SideMenuData(
-                      header: Column(
-                        children: [
-                          Center(
-                            child: Text(mainController.storeData.value!.branch),
-                          ),
-                          const SizedBox(
-                            height: 10,
-                          ),
-                          Center(
-                            child: Text(mainController.storeData.value!.phone),
-                          ),
-                          const SizedBox(
-                            height: 5,
-                          ),
-                          Center(
-                            child:
-                                Text(mainController.storeData.value!.address),
-                          ),
-                          const SizedBox(
-                            height: 10,
-                          ),
-                          const Divider(
-                            height: 1,
-                          ),
-                          const SizedBox(
-                            height: 10,
-                          ),
-                        ],
-                      ),
-                      items: [
-                        SideMenuItemDataTile(
-                          isSelected: selectedPage == 0,
-                          title: 'المستودع',
-                          onTap: () {
-                            pageController.jumpToPage(0);
-                            setState(() {
-                              selectedPage = 0;
-                            });
-                          },
-                          icon: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 5),
-                              child:
-                                  Image.asset('assets/images/inventory.png')),
-                        ),
-                        SideMenuItemDataTile(
-                            isSelected: selectedPage == 1,
-                            title: 'العملاء',
-                            onTap: () {
-                              pageController.jumpToPage(1);
-                              setState(() {
-                                selectedPage = 1;
-                              });
-                            },
-                            icon: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 5),
-                              child: Image.asset('assets/images/customers.png'),
-                            )),
-                        SideMenuItemDataTile(
-                            isSelected: selectedPage == 2,
-                            title: 'البيع',
-                            onTap: () {
-                              pageController.jumpToPage(2);
-                              setState(() {
-                                selectedPage = 2;
-                              });
-                            },
-                            icon: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 5),
-                              child: Image.asset('assets/images/cart.png'),
-                            )),
-                        SideMenuItemDataTile(
-                            isSelected: selectedPage == 3,
-                            title: 'المرتجع',
-                            onTap: () {
-                              pageController.jumpToPage(3);
-                              setState(() {
-                                selectedPage = 3;
-                              });
-                            },
-                            icon: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 5),
-                              child: Image.asset('assets/images/return.png'),
-                            )),
-                        SideMenuItemDataTile(
-                            isSelected: selectedPage == 4,
-                            title: 'الديون',
-                            onTap: () {
-                              pageController.jumpToPage(4);
-                              setState(() {
-                                selectedPage = 4;
-                              });
-                            },
-                            icon: const Padding(
-                              padding:
-                                  EdgeInsets.symmetric(horizontal: 5),
-                              child: Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
-                            )),
-                        SideMenuItemDataTile(
-                            isSelected: selectedPage == 5,
-                            title: 'الموردين',
-                            onTap: () {
-                              // pageController.jumpToPage(5);
-                              // setState(() {
-                              //   selectedPage = 5;
-                              // });
-                            },
-                            icon: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 5),
-                              child: Image.asset('assets/images/supplier.png'),
-                            )),
-                        SideMenuItemDataTile(
-                            isSelected: selectedPage == 6,
-                            title: 'فواتير المبيعات/المرتجع',
-                            onTap: () {
-                              // pageController.jumpToPage(5);
-                              // setState(() {
-                              //   selectedPage = 5;
-                              // });
-                            },
-                            icon: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 5),
-                              child: Image.asset('assets/images/sales.png'),
-                            )),
-                        SideMenuItemDataTile(
-                            isSelected: selectedPage == 5,
-                            title: 'فواتير المشتريات/المرتجع',
-                            onTap: () {
-                              // pageController.jumpToPage(5);
-                              // setState(() {
-                              //   selectedPage = 5;
-                              // });
-                            },
-                            icon: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 5),
-                              child: Image.asset('assets/images/purchases.png'),
-                            )),
-                        SideMenuItemDataTile(
-                            isSelected: selectedPage == 7,
-                            title: 'النفقات',
-                            onTap: () {
-                              // pageController.jumpToPage(6);
-                              // setState(() {
-                              //   selectedPage = 6;
-                              // });
-                            },
-                            icon: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 5),
-                              child: Image.asset('assets/images/expenses.png'),
-                            )),
-                        SideMenuItemDataTile(
-                            isSelected: selectedPage == 8,
-                            title: 'التقارير',
-                            onTap: () {
-                              // pageController.jumpToPage(7);
-                              // setState(() {
-                              //   selectedPage = 7;
-                              // });
-                            },
-                            icon: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 5),
-                              child: Image.asset('assets/images/reports.png'),
-                            )),
-                        SideMenuItemDataTile(
-                            isSelected: selectedPage == 9,
-                            title: 'الملاحظات و التنبيهات',
-                            onTap: () {
-                              // pageController.jumpToPage(8);
-                              // setState(() {
-                              //   selectedPage = 8;
-                              // });
-                            },
-                            icon: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 5),
-                              child: Image.asset('assets/images/alarm.png'),
-                            )),
-                        SideMenuItemDataTile(
-                            isSelected: selectedPage == 10,
-                            title: 'المستخدمين',
-                            onTap: () {
-                              // pageController.jumpToPage(9);
-                              // setState(() {
-                              //   selectedPage = 9;
-                              // });
-                            },
-                            icon: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 5),
-                              child: Image.asset('assets/images/users.png'),
-                            )),
-                        SideMenuItemDataTile(
-                            isSelected: selectedPage == 11,
-                            title: 'الإعدادات',
-                            onTap: () {
-                              // pageController.jumpToPage(10);
-                              // setState(() {
-                              //   selectedPage = 10;
-                              // });
-                            },
-                            icon: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 5),
-                              child: Image.asset('assets/images/settings.png'),
-                            )),
-                      ],
-                    ),
-                  ),
-                  const VerticalDivider(
-                    width: 1,
-                  ),
+                  _buildSideMenu(mainController),
+                  const VerticalDivider(width: 1),
                   Expanded(
                     child: PageView(
                       physics: const NeverScrollableScrollPhysics(),
                       pageSnapping: false,
                       controller: pageController,
                       children: [
-                        Row(
-                          children: [
-                            Expanded(child: InventoryPage()),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Expanded(child: CustomersPage()),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Expanded(child: SalePage()),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Expanded(child: ReturnPage()),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Expanded(child: DebtsPage()),
-                          ],
-                        ),
-                        Container(
-                          child: const Center(
-                            child: Text('الموردين'),
-                          ),
-                        ),
-                        Container(
-                          child: const Center(
-                            child: Text('فواتير المبيعات/المرتجع'),
-                          ),
-                        ),
-                        Container(
-                          child: const Center(
-                            child: Text('فواتير المشتريات/المرتجع'),
-                          ),
-                        ),
-                        Container(
-                          child: const Center(
-                            child: Text('النفقات'),
-                          ),
-                        ),
-                        Container(
-                          child: const Center(
-                            child: Text('التقارير'),
-                          ),
-                        ),
-                        Container(
-                          child: const Center(
-                            child: Text('الملاحظات و التنبيهات'),
-                          ),
-                        ),
-                        Container(
-                          child: const Center(
-                            child: Text('المستخدمين'),
-                          ),
-                        ),
-                        Container(
-                          child: const Center(
-                            child: Text('الإعدادات'),
-                          ),
-                        ),
+                        const InventoryPage(),
+                        const CustomersPage(),
+                        const SalePage(),
+                        const ReturnPage(),
+                        const DebtsPage(),
+                        _buildPlaceholderPage('الموردين'),
+                        _buildPlaceholderPage('فواتير المبيعات/المرتجع'),
+                        _buildPlaceholderPage('فواتير المشتريات/المرتجع'),
+                        _buildPlaceholderPage('النفقات'),
+                        _buildPlaceholderPage('التقارير'),
+                        _buildPlaceholderPage('الملاحظات و التنبيهات'),
+                        _buildPlaceholderPage('المستخدمين'),
+                        _buildPlaceholderPage('الإعدادات'),
                       ],
                     ),
                   ),
@@ -414,6 +92,130 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
+    );
+  }
+
+  PreferredSizeWidget _buildDesktopAppBar(MainController mainController) {
+    return AppBar(
+      centerTitle: true,
+      automaticallyImplyLeading: false,
+      title: DragToMoveArea(
+        child: Row(
+          children: [
+            Text(mainController.storeData.value?.name ?? ""),
+          ],
+        ),
+      ),
+      backgroundColor: Colors.white,
+      foregroundColor: Colors.black,
+      actions: [
+        IconButton(
+          onPressed: () async {
+            await windowManager.setMinimumSize(Size.zero);
+            await windowManager.minimize();
+          },
+          icon: const Icon(Icons.minimize),
+        ),
+        IconButton(
+          onPressed: () async {
+            if (await windowManager.isMaximized()) {
+              await windowManager.unmaximize();
+            } else {
+              await windowManager.setMaximumSize(Size.infinite);
+              windowManager.maximize();
+            }
+          },
+          icon: const Icon(Icons.crop_square, color: Colors.green),
+        ),
+        IconButton(
+          onPressed: () => exit(0),
+          icon: const Icon(Icons.close, color: Colors.red),
+        ),
+      ],
+    );
+  }
+
+  PreferredSizeWidget _buildMobileAppBar(MainController mainController) {
+    return AppBar(
+      centerTitle: true,
+      title: Text(mainController.storeData.value?.name ?? ""),
+      backgroundColor: Colors.white,
+      foregroundColor: Colors.black,
+    );
+  }
+
+  Widget _buildSideMenu(MainController mainController) {
+    return SideMenu(
+      mode: SideMenuMode.open,
+      hasResizerToggle: false,
+      hasResizer: false,
+      builder: (data) => SideMenuData(
+        header: Column(
+          children: [
+            if (mainController.storeData.value != null) ...[
+              Center(child: Text(mainController.storeData.value!.branch)),
+              const SizedBox(height: 10),
+              Center(child: Text(mainController.storeData.value!.phone)),
+              const SizedBox(height: 5),
+              Center(child: Text(mainController.storeData.value!.address)),
+              const SizedBox(height: 10),
+            ],
+            const Divider(height: 1),
+            const SizedBox(height: 10),
+          ],
+        ),
+        items: [
+          _buildMenuItem(0, 'المستودع', 'assets/images/inventory.png'),
+          _buildMenuItem(1, 'العملاء', 'assets/images/customers.png'),
+          _buildMenuItem(2, 'البيع', 'assets/images/cart.png'),
+          _buildMenuItemWithIcon(3, 'المرتجع', Icons.keyboard_return, Colors.orange),
+          _buildMenuItemWithIcon(4, 'الديون', Icons.warning_amber_rounded, Colors.red),
+          _buildMenuItem(5, 'الموردين', 'assets/images/supplier.png'),
+          _buildMenuItem(6, 'فواتير المبيعات/المرتجع', 'assets/images/sales.png'),
+          _buildMenuItem(7, 'فواتير المشتريات/المرتجع', 'assets/images/purchases.png'),
+          _buildMenuItem(8, 'النفقات', 'assets/images/expenses.png'),
+          _buildMenuItem(9, 'التقارير', 'assets/images/reports.png'),
+          _buildMenuItem(10, 'الملاحظات و التنبيهات', 'assets/images/alarm.png'),
+          _buildMenuItem(11, 'المستخدمين', 'assets/images/users.png'),
+          _buildMenuItem(12, 'الإعدادات', 'assets/images/settings.png'),
+        ],
+      ),
+    );
+  }
+
+  SideMenuItemDataTile _buildMenuItem(int index, String title, String iconPath) {
+    return SideMenuItemDataTile(
+      isSelected: selectedPage == index,
+      title: title,
+      onTap: () {
+        pageController.jumpToPage(index);
+        setState(() => selectedPage = index);
+      },
+      icon: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 5),
+        child: Image.asset(iconPath, width: 28, height: 28),
+      ),
+    );
+  }
+
+  SideMenuItemDataTile _buildMenuItemWithIcon(int index, String title, IconData icon, Color color) {
+    return SideMenuItemDataTile(
+      isSelected: selectedPage == index,
+      title: title,
+      onTap: () {
+        pageController.jumpToPage(index);
+        setState(() => selectedPage = index);
+      },
+      icon: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 5),
+        child: Icon(icon, color: color, size: 28),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholderPage(String title) {
+    return Center(
+      child: Text(title, style: const TextStyle(fontSize: 24)),
     );
   }
 }
