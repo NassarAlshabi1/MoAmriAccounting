@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_side_menu/flutter_side_menu.dart';
 import 'package:get/get.dart';
+import 'package:moamri_accounting/debts/pages/debts_page.dart';
 import 'package:moamri_accounting/return/pages/return_page.dart';
 import 'package:moamri_accounting/sale/pages/sale_page.dart';
 import 'package:window_manager/window_manager.dart';
@@ -203,11 +204,25 @@ class _HomePageState extends State<HomePage> {
                             )),
                         SideMenuItemDataTile(
                             isSelected: selectedPage == 4,
+                            title: 'الديون',
+                            onTap: () {
+                              pageController.jumpToPage(4);
+                              setState(() {
+                                selectedPage = 4;
+                              });
+                            },
+                            icon: const Padding(
+                              padding:
+                                  EdgeInsets.symmetric(horizontal: 5),
+                              child: Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+                            )),
+                        SideMenuItemDataTile(
+                            isSelected: selectedPage == 5,
                             title: 'الموردين',
                             onTap: () {
-                              // pageController.jumpToPage(4);
+                              // pageController.jumpToPage(5);
                               // setState(() {
-                              //   selectedPage = 4;
+                              //   selectedPage = 5;
                               // });
                             },
                             icon: Padding(
@@ -216,7 +231,7 @@ class _HomePageState extends State<HomePage> {
                               child: Image.asset('assets/images/supplier.png'),
                             )),
                         SideMenuItemDataTile(
-                            isSelected: selectedPage == 5,
+                            isSelected: selectedPage == 6,
                             title: 'فواتير المبيعات/المرتجع',
                             onTap: () {
                               // pageController.jumpToPage(5);
@@ -244,7 +259,7 @@ class _HomePageState extends State<HomePage> {
                               child: Image.asset('assets/images/purchases.png'),
                             )),
                         SideMenuItemDataTile(
-                            isSelected: selectedPage == 6,
+                            isSelected: selectedPage == 7,
                             title: 'النفقات',
                             onTap: () {
                               // pageController.jumpToPage(6);
@@ -258,7 +273,7 @@ class _HomePageState extends State<HomePage> {
                               child: Image.asset('assets/images/expenses.png'),
                             )),
                         SideMenuItemDataTile(
-                            isSelected: selectedPage == 7,
+                            isSelected: selectedPage == 8,
                             title: 'التقارير',
                             onTap: () {
                               // pageController.jumpToPage(7);
@@ -272,7 +287,7 @@ class _HomePageState extends State<HomePage> {
                               child: Image.asset('assets/images/reports.png'),
                             )),
                         SideMenuItemDataTile(
-                            isSelected: selectedPage == 8,
+                            isSelected: selectedPage == 9,
                             title: 'الملاحظات و التنبيهات',
                             onTap: () {
                               // pageController.jumpToPage(8);
@@ -286,7 +301,7 @@ class _HomePageState extends State<HomePage> {
                               child: Image.asset('assets/images/alarm.png'),
                             )),
                         SideMenuItemDataTile(
-                            isSelected: selectedPage == 9,
+                            isSelected: selectedPage == 10,
                             title: 'المستخدمين',
                             onTap: () {
                               // pageController.jumpToPage(9);
@@ -300,7 +315,7 @@ class _HomePageState extends State<HomePage> {
                               child: Image.asset('assets/images/users.png'),
                             )),
                         SideMenuItemDataTile(
-                            isSelected: selectedPage == 10,
+                            isSelected: selectedPage == 11,
                             title: 'الإعدادات',
                             onTap: () {
                               // pageController.jumpToPage(10);
@@ -345,49 +360,49 @@ class _HomePageState extends State<HomePage> {
                             Expanded(child: ReturnPage()),
                           ],
                         ),
+                        Row(
+                          children: [
+                            Expanded(child: DebtsPage()),
+                          ],
+                        ),
                         Container(
                           child: const Center(
-                            child: Text('Add Material'),
+                            child: Text('الموردين'),
                           ),
                         ),
                         Container(
                           child: const Center(
-                            child: Text('Add Material'),
+                            child: Text('فواتير المبيعات/المرتجع'),
                           ),
                         ),
                         Container(
                           child: const Center(
-                            child: Text('Materials Management'),
+                            child: Text('فواتير المشتريات/المرتجع'),
                           ),
                         ),
                         Container(
                           child: const Center(
-                            child: Text('Purchases'),
+                            child: Text('النفقات'),
                           ),
                         ),
                         Container(
                           child: const Center(
-                            child: Text('Add Material'),
+                            child: Text('التقارير'),
                           ),
                         ),
                         Container(
                           child: const Center(
-                            child: Text('Materials Management'),
+                            child: Text('الملاحظات و التنبيهات'),
                           ),
                         ),
                         Container(
                           child: const Center(
-                            child: Text('Purchases'),
+                            child: Text('المستخدمين'),
                           ),
                         ),
                         Container(
                           child: const Center(
-                            child: Text('Add Material'),
-                          ),
-                        ),
-                        Container(
-                          child: const Center(
-                            child: Text('Materials Management'),
+                            child: Text('الإعدادات'),
                           ),
                         ),
                       ],

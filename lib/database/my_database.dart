@@ -250,6 +250,28 @@ class MyDatabase {
     COMMIT;
     ''',
     );
+    // Debt payments table - for tracking partial debt payments
+    await myDatabase.execute("""
+    CREATE TABLE IF NOT EXISTS debt_payments(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      debt_id INTEGER NOT NULL REFERENCES debts(id) ON DELETE CASCADE,    
+      customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE RESTRICT,  
+      date INTEGER NOT NULL, 
+      amount REAL NOT NULL, 
+      exchange_rate REAL NOT NULL, 
+      currency TEXT NOT NULL REFERENCES currencies(name) ON DELETE NO ACTION ON UPDATE CASCADE,
+      note TEXT
+    )
+    """);
+    await myDatabase.execute(
+      '''
+    BEGIN TRANSACTION;
+    UPDATE sqlite_sequence SET seq = 100000 WHERE name = 'debt_payments';
+    INSERT INTO sqlite_sequence (name,seq) SELECT 'debt_payments', 100000 WHERE NOT EXISTS 
+              (SELECT changes() AS change FROM sqlite_sequence WHERE change <> 0);
+    COMMIT;
+    ''',
+    );
     await myDatabase.execute('''
     CREATE TABLE IF NOT EXISTS suppliers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
