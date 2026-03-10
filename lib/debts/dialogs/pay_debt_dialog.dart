@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moamri_accounting/controllers/main_controller.dart';
 import 'package:moamri_accounting/database/debts_database.dart';
+import 'package:moamri_accounting/database/entities/currency.dart';
 import 'package:moamri_accounting/database/entities/debt_payment.dart';
 import 'package:moamri_accounting/dialogs/alerts_dialogs.dart';
 import 'package:moamri_accounting/utils/global_utils.dart';
@@ -16,8 +17,8 @@ Future<bool?> showPayDebtDialog(
         final formKey = GlobalKey<FormState>();
         final amountController = TextEditingController();
         final noteController = TextEditingController();
-        var selectedCurrency = mainController.currencies.isNotEmpty
-            ? mainController.currencies.first
+        Currency? selectedCurrency = mainController.currencies.value.isNotEmpty
+            ? mainController.currencies.value.first
             : null;
 
         double remainingAmount =
@@ -110,7 +111,7 @@ Future<bool?> showPayDebtDialog(
                         ),
                         const SizedBox(height: 12),
                         // Currency Dropdown
-                        Obx(() => DropdownButtonFormField<dynamic>(
+                        Obx(() => DropdownButtonFormField<Currency?>(
                               value: selectedCurrency,
                               decoration: InputDecoration(
                                 labelText: 'العملة',
@@ -119,8 +120,8 @@ Future<bool?> showPayDebtDialog(
                                 filled: true,
                                 fillColor: Colors.white,
                               ),
-                              items: mainController.currencies.map((currency) {
-                                return DropdownMenuItem(
+                              items: mainController.currencies.value.map((currency) {
+                                return DropdownMenuItem<Currency?>(
                                   value: currency,
                                   child: Text(
                                       '${currency.name} (${currency.exchangeRate})'),
