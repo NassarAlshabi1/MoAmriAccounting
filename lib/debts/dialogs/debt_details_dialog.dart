@@ -68,8 +68,7 @@ Future<bool?> showDebtDetailsDialog(
                                   "العميل", debtData['customer_name'] ?? 'غير محدد'),
                               _buildInfoRow(
                                   "التاريخ",
-                                  GlobalUtils.getDate(
-                                      debtData['date'] as int)),
+                                  GlobalUtils.getDate(debtData['date'] as int)),
                               _buildInfoRow(
                                   "المبلغ الأصلي",
                                   "${GlobalUtils.getMoney(originalAmount)} ${mainController.storeData.value?.currency ?? ''}"),

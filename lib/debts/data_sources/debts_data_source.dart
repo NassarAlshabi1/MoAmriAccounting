@@ -26,11 +26,11 @@ class DebtsDataSource extends DataGridSource {
         DataGridCell<int>(columnName: 'ID', value: debt['id'] as int),
         DataGridCell<String>(
             columnName: 'Customer', value: debt['customer_name'] ?? 'غير محدد'),
+        DataGridCell<String>(columnName: 'Phone', value: debt['customer_phone'] ?? ''),
         DataGridCell<String>(columnName: 'Date', value: GlobalUtils.getDate(debt['date'] as int)),
         DataGridCell<double>(columnName: 'TotalAmount', value: totalAmount),
         DataGridCell<double>(columnName: 'RemainingAmount', value: remainingAmount),
         DataGridCell<String>(columnName: 'Status', value: isPaid ? 'مسدد' : 'غير مسدد'),
-        DataGridCell<String>(columnName: 'Phone', value: debt['customer_phone'] ?? ''),
         DataGridCell<String>(columnName: 'Note', value: debt['note'] ?? ''),
       ]);
     }).toList();
@@ -47,8 +47,8 @@ class DebtsDataSource extends DataGridSource {
 
   @override
   DataGridRowAdapter? buildRow(DataGridRow row) {
-    bool isPaid = row.getCells()[5].value.toString() == 'مسدد';
-    double remainingAmount = row.getCells()[4].value as double;
+    bool isPaid = row.getCells()[6].value.toString() == 'مسدد';
+    double remainingAmount = row.getCells()[5].value as double;
 
     return DataGridRowAdapter(
         cells: row.getCells().map<Widget>((dataGridCell) {

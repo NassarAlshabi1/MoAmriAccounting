@@ -1,4 +1,3 @@
-import 'package:moamri_accounting/controllers/main_controller.dart';
 import 'package:moamri_accounting/database/entities/audit.dart';
 import 'package:moamri_accounting/database/entities/debt.dart';
 import 'package:moamri_accounting/database/entities/debt_payment.dart';
@@ -30,6 +29,23 @@ class DebtsDatabase {
     return await MyDatabase.myDatabase.rawQuery(query);
   }
 
+  // Get active debts (with remaining amount > 0)
+  static Future<List<Map<String, dynamic>>> getActiveDebts({
+    String? orderBy,
+    String? dir,
+  }) async {
+    return await MyDatabase.myDatabase.rawQuery('''
+      SELECT d.*, c.name as customer_name, c.phone as customer_phone,
+             (d.amount - IFNULL((SELECT SUM(dp.amount * dp.exchange_rate) 
+              FROM debt_payments dp WHERE dp.debt_id = d.id), 0)) as remaining_amount
+      FROM debts d
+      LEFT JOIN customers c ON d.customer_id = c.id
+      WHERE (d.amount - IFNULL((SELECT SUM(dp.amount * dp.exchange_rate) 
+            FROM debt_payments dp WHERE dp.debt_id = d.id), 0)) > 0
+      ORDER BY ${orderBy ?? "d.date"} COLLATE NOCASE ${dir ?? "DESC"}
+    ''');
+  }
+
   // Get debt payments for a specific debt
   static Future<List<DebtPayment>> getDebtPayments(int debtId) async {
     List<Map<String, dynamic>> maps = await MyDatabase.myDatabase.query(
@@ -54,23 +70,6 @@ class DebtsDatabase {
       return 0;
     }
     return result.first['total_debt'] as double;
-  }
-
-  // Get all debts with remaining amount > 0 (active debts)
-  static Future<List<Map<String, dynamic>>> getActiveDebts({
-    String? orderBy,
-    String? dir,
-  }) async {
-    return await MyDatabase.myDatabase.rawQuery('''
-      SELECT d.*, c.name as customer_name, c.phone as customer_phone,
-             (d.amount - IFNULL((SELECT SUM(dp.amount * dp.exchange_rate) 
-              FROM debt_payments dp WHERE dp.debt_id = d.id), 0)) as remaining_amount
-      FROM debts d
-      LEFT JOIN customers c ON d.customer_id = c.id
-      WHERE (d.amount - IFNULL((SELECT SUM(dp.amount * dp.exchange_rate) 
-            FROM debt_payments dp WHERE dp.debt_id = d.id), 0)) > 0
-      ORDER BY ${orderBy ?? "d.date"} COLLATE NOCASE ${dir ?? "DESC"}
-    ''');
   }
 
   // Add debt payment
@@ -152,15 +151,6 @@ class DebtsDatabase {
       double remaining = debtCheck.first['remaining_amount'] as double? ?? 0;
       if (remaining > 0) return false;
 
-      // Get old debt data for audit
-      List<Map<String, dynamic>> oldDebtMaps = await txn.query(
-        'debts',
-        where: 'id = ?',
-        whereArgs: [debtId],
-      );
-
-      if (oldDebtMaps.isEmpty) return false;
-
       // Delete debt payments first
       await txn.delete(
         'debt_payments',
@@ -202,22 +192,6 @@ class DebtsDatabase {
       return 0;
     }
     return result.first['total'] as double;
-  }
-
-  // Get debts summary by customer
-  static Future<List<Map<String, dynamic>>> getDebtsSummaryByCustomer() async {
-    return await MyDatabase.myDatabase.rawQuery('''
-      SELECT c.id, c.name, c.phone,
-             COUNT(d.id) as debts_count,
-             SUM(d.amount) as total_debt,
-             SUM(d.amount - IFNULL((SELECT SUM(dp.amount * dp.exchange_rate) 
-                  FROM debt_payments dp WHERE dp.debt_id = d.id), 0)) as remaining_amount
-      FROM customers c
-      LEFT JOIN debts d ON c.id = d.customer_id
-      GROUP BY c.id
-      HAVING remaining_amount > 0 OR total_debt > 0
-      ORDER BY remaining_amount DESC
-    ''');
   }
 
   // Get debt by ID

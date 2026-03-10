@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:moamri_accounting/controllers/main_controller.dart';
 import 'package:moamri_accounting/database/debts_database.dart';
 import 'package:moamri_accounting/database/entities/debt_payment.dart';
-import 'package:moamri_accounting/database/entities/currency.dart';
 import 'package:moamri_accounting/dialogs/alerts_dialogs.dart';
 import 'package:moamri_accounting/utils/global_utils.dart';
 
@@ -17,7 +16,7 @@ Future<bool?> showPayDebtDialog(
         final formKey = GlobalKey<FormState>();
         final amountController = TextEditingController();
         final noteController = TextEditingController();
-        Currency? selectedCurrency = mainController.currencies.isNotEmpty
+        var selectedCurrency = mainController.currencies.isNotEmpty
             ? mainController.currencies.first
             : null;
 
@@ -66,34 +65,14 @@ Future<bool?> showPayDebtDialog(
                           ),
                           child: Column(
                             children: [
-                              Row(
-                                children: [
-                                  const Text("العميل: ",
-                                      style: TextStyle(fontWeight: FontWeight.bold)),
-                                  Text(debtData['customer_name'] ?? 'غير محدد'),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  const Text("المبلغ الأصلي: ",
-                                      style: TextStyle(fontWeight: FontWeight.bold)),
-                                  Text(
-                                      "${GlobalUtils.getMoney(debtData['amount'] as double)} ${mainController.storeData.value?.currency ?? ''}"),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  const Text("المبلغ المتبقي: ",
-                                      style: TextStyle(fontWeight: FontWeight.bold)),
-                                  Text(
-                                    "${GlobalUtils.getMoney(remainingAmount)} ${mainController.storeData.value?.currency ?? ''}",
-                                    style: const TextStyle(
-                                        color: Colors.red,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                ],
+                              _buildInfoRow("العميل", debtData['customer_name'] ?? 'غير محدد'),
+                              _buildInfoRow(
+                                  "المبلغ الأصلي",
+                                  "${GlobalUtils.getMoney(debtData['amount'] as double)} ${mainController.storeData.value?.currency ?? ''}"),
+                              _buildInfoRow(
+                                "المبلغ المتبقي",
+                                "${GlobalUtils.getMoney(remainingAmount)} ${mainController.storeData.value?.currency ?? ''}",
+                                valueColor: Colors.red,
                               ),
                             ],
                           ),
@@ -131,7 +110,7 @@ Future<bool?> showPayDebtDialog(
                         ),
                         const SizedBox(height: 12),
                         // Currency Dropdown
-                        Obx(() => DropdownButtonFormField<Currency>(
+                        Obx(() => DropdownButtonFormField<dynamic>(
                               value: selectedCurrency,
                               decoration: InputDecoration(
                                 labelText: 'العملة',
@@ -141,7 +120,7 @@ Future<bool?> showPayDebtDialog(
                                 fillColor: Colors.white,
                               ),
                               items: mainController.currencies.map((currency) {
-                                return DropdownMenuItem<Currency>(
+                                return DropdownMenuItem(
                                   value: currency,
                                   child: Text(
                                       '${currency.name} (${currency.exchangeRate})'),
@@ -251,4 +230,22 @@ Future<bool?> showPayDebtDialog(
           ),
         );
       });
+}
+
+Widget _buildInfoRow(String label, String value, {Color? valueColor}) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      children: [
+        Text("$label: ", style: const TextStyle(fontWeight: FontWeight.bold)),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(color: valueColor),
+            textAlign: TextAlign.end,
+          ),
+        ),
+      ],
+    ),
+  );
 }

@@ -6,7 +6,6 @@ import 'package:moamri_accounting/debts/controllers/debts_controller.dart';
 import 'package:moamri_accounting/debts/dialogs/debt_details_dialog.dart';
 import 'package:moamri_accounting/debts/dialogs/pay_debt_dialog.dart';
 import 'package:moamri_accounting/dialogs/alerts_dialogs.dart';
-import 'package:moamri_accounting/dialogs/sort_by_dialog.dart';
 import 'package:moamri_accounting/utils/global_utils.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
@@ -91,34 +90,6 @@ class DebtsPage extends StatelessWidget {
                         scrollDirection: Axis.horizontal,
                         child: Row(
                           children: [
-                            OutlinedButton.icon(
-                              onPressed: () async {
-                                var result = await showSortByDialog(
-                                    controller.orderBy.value,
-                                    controller.selectedOrderBy.value,
-                                    controller.selectedOrderDir.value);
-                                if (result == null) return;
-                                controller.selectedOrderBy.value = result[0];
-                                controller.selectedOrderDir.value = result[1];
-                                controller.firstLoad();
-                              },
-                              style: ButtonStyle(
-                                  shape: MaterialStateProperty.all(
-                                      RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8.0),
-                                  )),
-                                  backgroundColor:
-                                      MaterialStateProperty.all(Colors.white),
-                                  foregroundColor:
-                                      MaterialStateProperty.all(Colors.black54)),
-                              icon: const Icon(Icons.sort),
-                              label: Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Text(
-                                    'ترتيب حسب: ${controller.orderBy.value[controller.selectedOrderBy.value]}'),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
                             FilterChip(
                               label: Text(controller.showOnlyActive.value
                                   ? "الديون النشطة فقط"
@@ -215,12 +186,16 @@ class DebtsPage extends StatelessWidget {
                     children: [
                       OutlinedButton.icon(
                         onPressed: () async {
-                          if (controller.dataGridController.selectedIndex < 0) {
+                          if (controller.dataGridController.selectedRow == null) {
                             showErrorDialog("يجب عليك اختيار دين");
                             return;
                           }
-                          var debtData =
-                              controller.debts[controller.dataGridController.selectedIndex];
+                          int selectedIndex = controller.dataGridController.selectedIndex;
+                          if (selectedIndex < 0 || selectedIndex >= controller.debts.length) {
+                            showErrorDialog("يجب عليك اختيار دين");
+                            return;
+                          }
+                          var debtData = controller.debts[selectedIndex];
                           await showDebtDetailsDialog(mainController, debtData);
                           controller.refreshDebts();
                         },
@@ -241,12 +216,16 @@ class DebtsPage extends StatelessWidget {
                       const SizedBox(width: 10),
                       OutlinedButton.icon(
                         onPressed: () async {
-                          if (controller.dataGridController.selectedIndex < 0) {
+                          if (controller.dataGridController.selectedRow == null) {
                             showErrorDialog("يجب عليك اختيار دين");
                             return;
                           }
-                          var debtData =
-                              controller.debts[controller.dataGridController.selectedIndex];
+                          int selectedIndex = controller.dataGridController.selectedIndex;
+                          if (selectedIndex < 0 || selectedIndex >= controller.debts.length) {
+                            showErrorDialog("يجب عليك اختيار دين");
+                            return;
+                          }
+                          var debtData = controller.debts[selectedIndex];
                           double remaining =
                               (debtData['remaining_amount'] ?? debtData['amount']) as double;
                           if (remaining <= 0) {
@@ -273,12 +252,16 @@ class DebtsPage extends StatelessWidget {
                       const SizedBox(width: 10),
                       OutlinedButton.icon(
                         onPressed: () async {
-                          if (controller.dataGridController.selectedIndex < 0) {
+                          if (controller.dataGridController.selectedRow == null) {
                             showErrorDialog("يجب عليك اختيار دين");
                             return;
                           }
-                          var debtData =
-                              controller.debts[controller.dataGridController.selectedIndex];
+                          int selectedIndex = controller.dataGridController.selectedIndex;
+                          if (selectedIndex < 0 || selectedIndex >= controller.debts.length) {
+                            showErrorDialog("يجب عليك اختيار دين");
+                            return;
+                          }
+                          var debtData = controller.debts[selectedIndex];
                           double remaining =
                               (debtData['remaining_amount'] ?? debtData['amount']) as double;
                           if (remaining > 0) {

@@ -12,4 +12,19 @@ class GlobalUtils {
     var formatedString = _numberFormat.format(money);
     return '$formatedString '; // this end space just to show the 0 in print properly
   }
+
+  static String getDate(int millisecondsSinceEpoch) {
+    final date = DateTime.fromMillisecondsSinceEpoch(millisecondsSinceEpoch);
+    return dateFormat.format(date);
+  }
+
+  static String getTime(int millisecondsSinceEpoch) {
+    final date = DateTime.fromMillisecondsSinceEpoch(millisecondsSinceEpoch);
+    return timeFormat.format(date);
+  }
+
+  static String getDateTime(int millisecondsSinceEpoch) {
+    final date = DateTime.fromMillisecondsSinceEpoch(millisecondsSinceEpoch);
+    return '${dateFormat.format(date)} ${timeFormat.format(date)}';
+  }
 }
