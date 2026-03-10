@@ -1,6 +1,7 @@
 import 'dart:io' as io;
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:sqflite/sqflite.dart' as sqflite;
 import 'package:path_provider/path_provider.dart';
 
 import 'entities/audit.dart';
@@ -13,24 +14,50 @@ class MyDatabase {
 
   /// create tables if not exist and triggers
   static Future<void> open() async {
-    // Init ffi loader if needed.
-    sqfliteFfiInit();
+    String dbPath;
 
-    var databaseFactory = databaseFactoryFfi;
-    final io.Directory appDocumentsDir =
-        await getApplicationDocumentsDirectory();
+    if (io.Platform.isWindows || io.Platform.isLinux || io.Platform.isMacOS) {
+      // Desktop platforms - use sqflite_common_ffi
+      sqfliteFfiInit();
+      var databaseFactory = databaseFactoryFfi;
+      final io.Directory appDocumentsDir =
+          await getApplicationDocumentsDirectory();
+      dbPath = p.join(appDocumentsDir.path, "databases", "myDb.db");
 
-    //Create path for database
-    String dbPath = p.join(appDocumentsDir.path, "databases", "myDb.db");
-    myDatabase = await databaseFactory.openDatabase(
-      dbPath,
-    );
+      // Ensure the directory exists
+      final dbDir = io.Directory(p.dirname(dbPath));
+      if (!await dbDir.exists()) {
+        await dbDir.create(recursive: true);
+      }
+
+      myDatabase = await databaseFactory.openDatabase(dbPath);
+    } else {
+      // Mobile platforms (Android/iOS) - use regular sqflite
+      final databasesPath = await sqflite.getDatabasesPath();
+      dbPath = p.join(databasesPath, "myDb.db");
+      myDatabase = await sqflite.openDatabase(
+        dbPath,
+        version: 1,
+        onCreate: (db, version) async {
+          await _createTables(db);
+        },
+      );
+    }
+
     // this is for making on delete cascade works
     await myDatabase.execute("PRAGMA foreign_keys=ON");
+
+    // Create tables if they don't exist (for mobile platforms, this is handled in onCreate)
+    if (io.Platform.isWindows || io.Platform.isLinux || io.Platform.isMacOS) {
+      await _createTables(myDatabase);
+    }
+  }
+
+  static Future<void> _createTables(Database db) async {
     // data should be store a map data of change
     // user_data should be user map data
     // user_id just in case we want to query all user action
-    await myDatabase.execute('''
+    await db.execute('''
     CREATE TABLE IF NOT EXISTS audits(
       date INTEGER PRIMARY KEY, 
       table_name TEXT NOT NULL,
@@ -42,7 +69,7 @@ class MyDatabase {
       user_data TEXT NOT NULL
     )
     ''');
-    await myDatabase.execute('''
+    await db.execute('''
     CREATE TABLE IF NOT EXISTS currencies (
       name TEXT PRIMARY KEY,
       id INTEGER NOT NULL UNIQUE,
@@ -50,7 +77,7 @@ class MyDatabase {
     )
     ''');
 
-    await myDatabase.execute('''
+    await db.execute('''
     CREATE TABLE IF NOT EXISTS store (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
@@ -63,7 +90,7 @@ class MyDatabase {
     )
     ''');
 
-    await myDatabase.execute('''
+    await db.execute('''
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
@@ -73,7 +100,7 @@ class MyDatabase {
       role TEXT CHECK( role IN ('admin','cashier') ) NOT NULL DEFAULT 'cashier'
     )
     ''');
-    await myDatabase.execute(
+    await db.execute(
       '''
     BEGIN TRANSACTION;
     UPDATE sqlite_sequence SET seq = 100000 WHERE name = 'users';
@@ -83,25 +110,25 @@ class MyDatabase {
     ''',
     );
 
-    await myDatabase.execute('''
+    await db.execute('''
     CREATE TABLE IF NOT EXISTS units (
       name TEXT PRIMARY KEY
     )
     ''');
     // insert the default units
-    await myDatabase.insert('units', {'name': 'قطعة'},
+    await db.insert('units', {'name': 'قطعة'},
         conflictAlgorithm: ConflictAlgorithm.ignore);
-    await myDatabase.insert('units', {'name': 'كيلو'},
+    await db.insert('units', {'name': 'كيلو'},
         conflictAlgorithm: ConflictAlgorithm.ignore);
-    await myDatabase.insert('units', {'name': 'طن'},
+    await db.insert('units', {'name': 'طن'},
         conflictAlgorithm: ConflictAlgorithm.ignore);
-    await myDatabase.insert('units', {'name': 'جرام'},
+    await db.insert('units', {'name': 'جرام'},
         conflictAlgorithm: ConflictAlgorithm.ignore);
-    await myDatabase.insert('units', {'name': 'متر'},
+    await db.insert('units', {'name': 'متر'},
         conflictAlgorithm: ConflictAlgorithm.ignore);
-    await myDatabase.insert('units', {'name': 'سم'},
+    await db.insert('units', {'name': 'سم'},
         conflictAlgorithm: ConflictAlgorithm.ignore);
-    await myDatabase.execute('''
+    await db.execute('''
     CREATE TABLE IF NOT EXISTS materials (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
@@ -118,7 +145,7 @@ class MyDatabase {
     )
     ''');
 
-    await myDatabase.execute('''
+    await db.execute('''
     CREATE TABLE IF NOT EXISTS expiries_dates (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       material_id INTEGER NOT NULL REFERENCES materials(id) ON DELETE CASCADE,
@@ -127,27 +154,7 @@ class MyDatabase {
     )
     ''');
 
-    // await myDatabase.execute("""
-    // CREATE TABLE IF NOT EXISTS offers(
-    //   id INTEGER PRIMARY KEY AUTOINCREMENT,
-    //   currency TEXT NOT NULL REFERENCES currencies(name) ON DELETE RESTRICT ON UPDATE CASCADE,
-    //   price REAl NOT NULL,
-    //   note TEXT
-    // )
-    // """);
-
-    // await myDatabase.execute("""
-    // CREATE TABLE IF NOT EXISTS offers_materials(
-    //   offer_id INTEGER,
-    //   material_id INTEGER,
-    //   quantity REAL NOT NULL,
-    //   PRIMARY KEY(offer_id, material_id),
-    //   FOREIGN KEY(offer_id) REFERENCES offers(id) ON DELETE CASCADE,
-    //   FOREIGN KEY(material_id) REFERENCES materials(id) ON DELETE RESTRICT
-    // )
-    // """);
-
-    await myDatabase.execute('''
+    await db.execute('''
     CREATE TABLE IF NOT EXISTS customers(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
@@ -156,7 +163,7 @@ class MyDatabase {
       description TEXT
     )
     ''');
-    await myDatabase.execute(
+    await db.execute(
       '''
     BEGIN TRANSACTION;
     UPDATE sqlite_sequence SET seq = 100000 WHERE name = 'customers';
@@ -166,7 +173,7 @@ class MyDatabase {
     ''',
     );
 
-    await myDatabase.execute('''
+    await db.execute('''
     CREATE TABLE IF NOT EXISTS invoices (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       type TEXT CHECK( type IN ('sale','return') ) NOT NULL,
@@ -177,7 +184,7 @@ class MyDatabase {
       note TEXT
     )
     ''');
-    await myDatabase.execute(
+    await db.execute(
       '''
     BEGIN TRANSACTION;
     UPDATE sqlite_sequence SET seq = 100000 WHERE name = 'invoices';
@@ -187,7 +194,7 @@ class MyDatabase {
     ''',
     );
 
-    await myDatabase.execute('''
+    await db.execute('''
     CREATE TABLE IF NOT EXISTS invoices_materials (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       invoice_id INTEGER NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
@@ -197,17 +204,8 @@ class MyDatabase {
       note TEXT
     )
     ''');
-    // await myDatabase.execute('''
-    // CREATE TABLE IF NOT EXISTS invoices_offers (
-    //   id INTEGER PRIMARY KEY AUTOINCREMENT,
-    //   invoice_id INTEGER NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
-    //   offer_id INTEGER NOT NULL REFERENCES offers(id) ON DELETE RESTRICT,
-    // price REAL NOT NULL,
-    //   quantity REAL NOT NULL
-    // )
-    // ''');
 
-    await myDatabase.execute("""
+    await db.execute("""
     CREATE TABLE IF NOT EXISTS payments(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       invoice_id INTEGER REFERENCES invoices(id) ON DELETE CASCADE,    
@@ -220,7 +218,7 @@ class MyDatabase {
     )
     """);
 
-    await myDatabase.execute(
+    await db.execute(
       '''
     BEGIN TRANSACTION;
     UPDATE sqlite_sequence SET seq = 100000 WHERE name = 'payments';
@@ -230,7 +228,7 @@ class MyDatabase {
     ''',
     );
     // here we can not delete the customer except if we delete all his/her debts
-    await myDatabase.execute("""
+    await db.execute("""
     CREATE TABLE IF NOT EXISTS debts(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       invoice_id INTEGER REFERENCES invoices(id) ON DELETE CASCADE,    
@@ -241,7 +239,7 @@ class MyDatabase {
     )
     """);
 
-    await myDatabase.execute(
+    await db.execute(
       '''
     BEGIN TRANSACTION;
     UPDATE sqlite_sequence SET seq = 100000 WHERE name = 'debts';
@@ -251,7 +249,7 @@ class MyDatabase {
     ''',
     );
     // Debt payments table - for tracking partial debt payments
-    await myDatabase.execute("""
+    await db.execute("""
     CREATE TABLE IF NOT EXISTS debt_payments(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       debt_id INTEGER NOT NULL REFERENCES debts(id) ON DELETE CASCADE,    
@@ -263,7 +261,7 @@ class MyDatabase {
       note TEXT
     )
     """);
-    await myDatabase.execute(
+    await db.execute(
       '''
     BEGIN TRANSACTION;
     UPDATE sqlite_sequence SET seq = 100000 WHERE name = 'debt_payments';
@@ -272,7 +270,7 @@ class MyDatabase {
     COMMIT;
     ''',
     );
-    await myDatabase.execute('''
+    await db.execute('''
     CREATE TABLE IF NOT EXISTS suppliers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
@@ -283,7 +281,7 @@ class MyDatabase {
     )
     ''');
 
-    await myDatabase.execute(
+    await db.execute(
       '''
     BEGIN TRANSACTION;
     UPDATE sqlite_sequence SET seq = 100000 WHERE name = 'suppliers';
@@ -292,7 +290,7 @@ class MyDatabase {
     COMMIT;
     ''',
     );
-    await myDatabase.execute('''
+    await db.execute('''
     CREATE TABLE IF NOT EXISTS purchases (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       supplier_id INTEGER REFERENCES suppliers(id) ON DELETE NO ACTION,
@@ -303,7 +301,7 @@ class MyDatabase {
     )
     ''');
 
-    await myDatabase.execute(
+    await db.execute(
       '''
     BEGIN TRANSACTION;
     UPDATE sqlite_sequence SET seq = 100000 WHERE name = 'purchases';
@@ -312,8 +310,7 @@ class MyDatabase {
     COMMIT;
     ''',
     );
-    // TODO check in deletable material
-    await myDatabase.execute('''
+    await db.execute('''
     CREATE TABLE IF NOT EXISTS purchases_materials (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       purchase_id INTEGER NOT NULL REFERENCES purchases(id) ON DELETE CASCADE,
@@ -324,7 +321,7 @@ class MyDatabase {
     )
     ''');
 
-    await myDatabase.execute("""
+    await db.execute("""
     CREATE TABLE IF NOT EXISTS purchases_payments(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       purchase_id INTEGER REFERENCES purchases(id) ON DELETE CASCADE,    
@@ -336,7 +333,7 @@ class MyDatabase {
     )
     """);
 
-    await myDatabase.execute(
+    await db.execute(
       '''
     BEGIN TRANSACTION;
     UPDATE sqlite_sequence SET seq = 100000 WHERE name = 'purchases_payments';
@@ -346,7 +343,7 @@ class MyDatabase {
     ''',
     );
     // here we can not delete the customer except if we delete all his/her debts
-    await myDatabase.execute("""
+    await db.execute("""
     CREATE TABLE IF NOT EXISTS purchases_debts(
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       purchase_id INTEGER REFERENCES purchases(id) ON DELETE CASCADE,    
@@ -358,7 +355,7 @@ class MyDatabase {
     )
     """);
 
-    await myDatabase.execute(
+    await db.execute(
       '''
     BEGIN TRANSACTION;
     UPDATE sqlite_sequence SET seq = 100000 WHERE name = 'purchases_debts';
@@ -367,7 +364,6 @@ class MyDatabase {
     COMMIT;
     ''',
     );
-    ////////////////////////////////////////////////////////////////////////////////////////////
   }
 
   static Future<Store?> getStoreData() async {
@@ -423,76 +419,3 @@ class MyDatabase {
 
   static Future close() async => MyDatabase.myDatabase.close();
 }
-
-/*
-// TODO ENCRYPTION
-import 'dart:ffi';
-import 'dart:io';
-import 'dart:math';
-import 'package:sqflite_common/sqlite_api.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:sqlite3/open.dart';
-
-Future<void> main(List<String> arguments) async {
-  final dbFactory = createDatabaseFactoryFfi(ffiInit: ffiInit);
-
-  final db = await dbFactory.openDatabase(
-    Directory.current.path + "/db_pass_1234.db",
-    options: OpenDatabaseOptions(
-      version: 1,
-      onConfigure: (db) async {
-        // This is the part where we pass the "password"
-        await db.rawQuery("PRAGMA KEY='1234'");
-      },
-      onCreate: (db, version) async {
-        db.execute("CREATE TABLE t (i INTEGER)");
-      },
-    ),
-  );
-  print(await db.rawQuery("PRAGMA cipher_version"));
-  print(await db.rawQuery("SELECT * FROM sqlite_master"));
-  print(db.path);
-  await db.close();
-}
-
-void ffiInit() {
-  open.overrideForAll(sqlcipherOpen);
-}
-
-DynamicLibrary sqlcipherOpen() {
-  // Taken from https://github.com/simolus3/sqlite3.dart/blob/e66702c5bec7faec2bf71d374c008d5273ef2b3b/sqlite3/lib/src/load_library.dart#L24
-  if (Platform.isLinux || Platform.isAndroid) {
-    try {
-      return DynamicLibrary.open('libsqlcipher.so');
-    } catch (_) {
-      if (Platform.isAndroid) {
-        // On some (especially old) Android devices, we somehow can't dlopen
-        // libraries shipped with the apk. We need to find the full path of the
-        // library (/data/data/<id>/lib/libsqlite3.so) and open that one.
-        // For details, see https://github.com/simolus3/moor/issues/420
-        final appIdAsBytes = File('/proc/self/cmdline').readAsBytesSync();
-
-        // app id ends with the first \0 character in here.
-        final endOfAppId = max(appIdAsBytes.indexOf(0), 0);
-        final appId = String.fromCharCodes(appIdAsBytes.sublist(0, endOfAppId));
-
-        return DynamicLibrary.open('/data/data/$appId/lib/libsqlcipher.so');
-      }
-
-      rethrow;
-    }
-  }
-  if (Platform.isIOS) {
-    return DynamicLibrary.process();
-  }
-  if (Platform.isMacOS) {
-    // TODO: Unsure what the path is in macos
-    return DynamicLibrary.open('/usr/lib/libsqlite3.dylib');
-  }
-  if (Platform.isWindows) {
-    // TODO: This dll should be the one that gets generated after compiling SQLcipher on Windows
-    return DynamicLibrary.open('sqlite3.dll');
-  }
-
-  throw UnsupportedError('Unsupported platform: ${Platform.operatingSystem}');
-} */

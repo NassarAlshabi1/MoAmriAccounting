@@ -21,6 +21,7 @@ class MainController extends GetxController {
   final getStorage = GetStorage();
   Rx<bool> loadingCurrenies = true.obs;
   Rx<List<Currency>> currencies = Rx([]);
+
   Future<void> getCurrenies() async {
     loadingCurrenies.value = true;
     currencies.value.clear();
@@ -30,26 +31,37 @@ class MainController extends GetxController {
   }
 
   @override
-  void onInit() async {
-    await MyDatabase.open();
-    storeData.value = await MyDatabase.getStoreData();
-    await getCurrenies();
-    if (storeData.value == null) {
-      Get.off(() => const StoreSetupPage());
-    } else {
-      // Get.off(() => const LoginPage());
-      showDialog(
-          context: Get.context!,
-          barrierDismissible: false,
-          useRootNavigator: false,
-          builder: (context) {
-            return const Dialog(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(5.0))),
-                child: LoginPage());
-          });
-    }
-    // loading.value = false;
+  void onInit() {
     super.onInit();
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    try {
+      await MyDatabase.open();
+      storeData.value = await MyDatabase.getStoreData();
+      await getCurrenies();
+      loading.value = false;
+
+      if (storeData.value == null) {
+        Get.off(() => const StoreSetupPage());
+      } else {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          showDialog(
+              context: Get.context!,
+              barrierDismissible: false,
+              useRootNavigator: false,
+              builder: (context) {
+                return const Dialog(
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(5.0))),
+                    child: LoginPage());
+              });
+        });
+      }
+    } catch (e) {
+      debugPrint('Error initializing app: $e');
+      loading.value = false;
+    }
   }
 }
