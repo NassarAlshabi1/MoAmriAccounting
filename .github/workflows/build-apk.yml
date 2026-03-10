@@ -39,6 +39,9 @@ jobs:
       - name: Get Flutter Dependencies
         run: flutter pub get
 
+      - name: Generate Launcher Icons
+        run: dart run flutter_launcher_icons
+
       - name: Build Release APK (arm64-only for modern devices)
         run: flutter build apk --release --target-platform android-arm64
 
