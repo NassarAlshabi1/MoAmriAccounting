@@ -41,6 +41,11 @@ class MainController extends GetxController {
     }
   }
 
+  /// Alias for backwards compatibility
+  Future<void> getCurrenies() async {
+    await getCurrencies();
+  }
+
   @override
   void onInit() {
     super.onInit();
