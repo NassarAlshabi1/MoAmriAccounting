@@ -98,8 +98,9 @@ Future<bool?> showPayDebtDialog(
                             if (amount == null || amount <= 0) {
                               return 'يرجى إدخال مبلغ صحيح';
                             }
-                            if (selectedCurrency != null &&
-                                amount * selectedCurrency.exchangeRate >
+                            final currency = selectedCurrency;
+                            if (currency != null &&
+                                amount * currency.exchangeRate >
                                     remainingAmount) {
                               return 'المبلغ أكبر من الدين المتبقي';
                             }
@@ -185,7 +186,8 @@ Future<bool?> showPayDebtDialog(
 
                                 double amount =
                                     double.parse(amountController.text);
-                                if (selectedCurrency == null) {
+                                final currency = selectedCurrency;
+                                if (currency == null) {
                                   showErrorDialog('يرجى اختيار العملة');
                                   return;
                                 }
@@ -195,8 +197,8 @@ Future<bool?> showPayDebtDialog(
                                   customerId: debtData['customer_id'] as int,
                                   date: DateTime.now().millisecondsSinceEpoch,
                                   amount: amount,
-                                  exchangeRate: selectedCurrency.exchangeRate,
-                                  currency: selectedCurrency.name,
+                                  exchangeRate: currency.exchangeRate,
+                                  currency: currency.name,
                                   note: noteController.text.isEmpty
                                       ? null
                                       : noteController.text,
