@@ -39,8 +39,8 @@ jobs:
       - name: Get Flutter Dependencies
         run: flutter pub get
 
-      - name: Build Release APK (Signed)
-        run: flutter build apk --release
+      - name: Build Release APK (arm64-only for modern devices)
+        run: flutter build apk --release --target-platform android-arm64
 
       - name: Rename APK
         run: |
@@ -100,8 +100,9 @@ jobs:
             2. فعّل "تثبيت من مصادر غير معروفة" في إعدادات الهاتف
             3. افتح ملف APK واضغط "تثبيت"
 
-            ### System Requirements
+            ### متطلبات النظام
             - Android 5.0 (Lollipop) أو أحدث
+            - معالج ARM64 (الأجهزة الحديثة)
 
           draft: false
           prerelease: false
