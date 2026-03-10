@@ -20,6 +20,11 @@ on:
         required: true
         default: true
         type: boolean
+      build_android:
+        description: 'Build Android APK'
+        required: true
+        default: true
+        type: boolean
 
 permissions:
   contents: write
@@ -104,11 +109,50 @@ jobs:
           path: build/moamri-accounting-windows-x64.zip
           retention-days: 30
 
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' || inputs.build_android == true }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.16.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Get Flutter Dependencies
+        run: flutter pub get
+
+      - name: Build Release APK
+        run: flutter build apk --release
+
+      - name: Rename APK
+        run: |
+          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/moamri-accounting-android.apk
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build
+          path: build/app/outputs/flutter-apk/moamri-accounting-android.apk
+          retention-days: 30
+
   create-release:
     name: Create GitHub Release
-    needs: [build-linux, build-windows]
+    needs: [build-linux, build-windows, build-android]
     runs-on: ubuntu-latest
-    if: always() && (needs.build-linux.result == 'success' || needs.build-windows.result == 'success')
+    if: always() && (needs.build-linux.result == 'success' || needs.build-windows.result == 'success' || needs.build-android.result == 'success')
 
     steps:
       - name: Checkout Repository
@@ -126,6 +170,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: windows-build
+          path: ./artifacts
+
+      - name: Download Android Build Artifact
+        if: needs.build-android.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: android-build
           path: ./artifacts
 
       - name: Get Version
@@ -151,24 +202,35 @@ jobs:
             ### التغييرات في هذا الإصدار
             - تحديثات وتحسينات جديدة
 
-            ### تحميل - Linux
-            - قم بتحميل ملف `moamri-accounting-linux-x64.tar.gz`
-            - فك الضغط عن الملف: `tar -xzvf moamri-accounting-linux-x64.tar.gz`
-            - تشغيل الملف التنفيذي من مجلد bundle
+            ---
 
-            ### Download - Windows
-            - Download `moamri-accounting-windows-x64.zip`
-            - Extract the archive
-            - Run `moamri_accounting.exe`
+            ### 📱 Android APK
+            - تحميل `moamri-accounting-android.apk`
+            - يتطلب Android 5.0 أو أحدث
+
+            ### 🐧 Linux
+            - تحميل `moamri-accounting-linux-x64.tar.gz`
+            - فك الضغط: `tar -xzvf moamri-accounting-linux-x64.tar.gz`
+            - تشغيل من مجلد bundle
+
+            ### 🪟 Windows
+            - تحميل `moamri-accounting-windows-x64.zip`
+            - فك الضغط وتشغيل `moamri_accounting.exe`
+
+            ---
 
             ### System Requirements
-            - Linux x64: GTK 3
-            - Windows x64: Windows 10 or later
+            | Platform | Requirements |
+            |----------|-------------|
+            | Android | Android 5.0+ (API 21) |
+            | Linux | GTK 3, x64 |
+            | Windows | Windows 10+, x64 |
 
           draft: false
           prerelease: false
           files: |
             ./artifacts/moamri-accounting-linux-x64.tar.gz
             ./artifacts/moamri-accounting-windows-x64.zip
+            ./artifacts/moamri-accounting-android.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -40,6 +40,15 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/.gradle/
+/android/app/build/
+/android/build/
+/android/local.properties
+/android/key.properties
+*.apk
+*.aab
+*.keystore
+*.jks
 
 # Linux build artifacts
 /linux/flutter/ephemeral/
