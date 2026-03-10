@@ -147,7 +147,7 @@ class InventoryController extends GetxController {
 
   @override
   void onInit() {
-    firstLoad();
     super.onInit();
+    // firstLoad() is called from the UI building process in InventoryPage
   }
 }

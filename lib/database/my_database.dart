@@ -51,7 +51,11 @@ class MyDatabase {
       },
       onOpen: (Database db) async {
         // Enable foreign keys
-        await db.execute("PRAGMA foreign_keys=ON");
+        try {
+          await db.execute("PRAGMA foreign_keys=ON");
+        } catch (e) {
+          debugPrint('Error enabling foreign keys: $e');
+        }
       },
     );
   }
