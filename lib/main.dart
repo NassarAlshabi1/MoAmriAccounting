@@ -145,7 +145,7 @@ class SplashScreen extends StatelessWidget {
                       onPressed: () {
                         controller.error.value = '';
                         controller.loading.value = true;
-                        controller._initializeApp();
+                        controller.initializeApp();
                       },
                       icon: const Icon(Icons.refresh),
                       label: const Text('إعادة المحاولة'),
