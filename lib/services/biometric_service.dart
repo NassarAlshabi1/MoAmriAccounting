@@ -60,9 +60,9 @@ class BiometricService extends GetxService {
           }
         }
       }
-    } on PlatformException catch (e) {
+    } catch (e) {
       if (kDebugMode) {
-        print('Error checking biometric availability: ${e.message}');
+        print('Error checking biometric availability: $e');
       }
       _isBiometricAvailable.value = false;
       _biometricType = null;

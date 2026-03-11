@@ -313,7 +313,7 @@ class CustomWidgetsTheme {
       ),
       boxShadow: [
         BoxShadow(
-          color: AppColors.shadow.withValues(alpha: 0.05),
+          color: AppColors.shadow.withOpacity(0.05),
           blurRadius: 8,
           offset: const Offset(0, 2),
         ),
@@ -332,7 +332,7 @@ class CustomWidgetsTheme {
       borderRadius: BorderRadius.circular(borderRadius),
       boxShadow: [
         BoxShadow(
-          color: AppColors.shadow.withValues(alpha: 0.1 * elevation / 4),
+          color: AppColors.shadow.withOpacity(0.1 * elevation / 4),
           blurRadius: elevation * 2,
           offset: Offset(0, elevation / 2),
         ),
@@ -351,7 +351,7 @@ class CustomWidgetsTheme {
       color: backgroundColor ?? AppColors.surface,
       borderRadius: BorderRadius.circular(8.0),
       border: Border.all(
-        color: borderColor ?? AppColors.primary.withValues(alpha: 0.5),
+        color: borderColor ?? AppColors.primary.withOpacity(0.5),
         width: 1,
       ),
     );
@@ -363,10 +363,10 @@ class CustomWidgetsTheme {
     Color? borderColor,
   }) {
     return BoxDecoration(
-      color: backgroundColor ?? AppColors.primaryContainer.withValues(alpha: 0.3),
+      color: backgroundColor ?? AppColors.primaryContainer.withOpacity(0.3),
       borderRadius: BorderRadius.circular(8.0),
       border: Border.all(
-        color: borderColor ?? AppColors.primary.withValues(alpha: 0.3),
+        color: borderColor ?? AppColors.primary.withOpacity(0.3),
         width: 1,
       ),
     );
@@ -375,10 +375,10 @@ class CustomWidgetsTheme {
   /// Success box decoration
   static BoxDecoration successBoxDecoration() {
     return BoxDecoration(
-      color: AppColors.successContainer.withValues(alpha: 0.3),
+      color: AppColors.successContainer.withOpacity(0.3),
       borderRadius: BorderRadius.circular(8.0),
       border: Border.all(
-        color: AppColors.success.withValues(alpha: 0.3),
+        color: AppColors.success.withOpacity(0.3),
         width: 1,
       ),
     );
@@ -387,10 +387,10 @@ class CustomWidgetsTheme {
   /// Error box decoration
   static BoxDecoration errorBoxDecoration() {
     return BoxDecoration(
-      color: AppColors.errorContainer.withValues(alpha: 0.3),
+      color: AppColors.errorContainer.withOpacity(0.3),
       borderRadius: BorderRadius.circular(8.0),
       border: Border.all(
-        color: AppColors.error.withValues(alpha: 0.3),
+        color: AppColors.error.withOpacity(0.3),
         width: 1,
       ),
     );
@@ -399,10 +399,10 @@ class CustomWidgetsTheme {
   /// Warning box decoration
   static BoxDecoration warningBoxDecoration() {
     return BoxDecoration(
-      color: AppColors.warningContainer.withValues(alpha: 0.3),
+      color: AppColors.warningContainer.withOpacity(0.3),
       borderRadius: BorderRadius.circular(8.0),
       border: Border.all(
-        color: AppColors.warning.withValues(alpha: 0.3),
+        color: AppColors.warning.withOpacity(0.3),
         width: 1,
       ),
     );

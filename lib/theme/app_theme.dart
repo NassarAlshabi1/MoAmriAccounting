@@ -214,7 +214,7 @@ class AppTheme {
         hintStyle: TextStyle(
           fontFamily: fontFamily,
           fontSize: 14,
-          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+          color: colorScheme.onSurfaceVariant.withOpacity(0.7),
         ),
         floatingLabelStyle: TextStyle(
           fontFamily: fontFamily,
@@ -226,7 +226,7 @@ class AppTheme {
       // ============== Text Selection ==============
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: colorScheme.primary,
-        selectionColor: colorScheme.primary.withValues(alpha: 0.3),
+        selectionColor: colorScheme.primary.withOpacity(0.3),
         selectionHandleColor: colorScheme.primary,
       ),
 
@@ -276,7 +276,7 @@ class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: colorScheme.surfaceContainerHighest,
         selectedColor: colorScheme.secondaryContainer,
-        disabledColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        disabledColor: colorScheme.surfaceContainerHighest.withOpacity(0.5),
         labelStyle: TextStyle(
           fontFamily: fontFamily,
           fontSize: 12,
@@ -395,7 +395,7 @@ class AppTheme {
       checkboxTheme: CheckboxThemeData(
         fillColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.disabled)) {
-            return colorScheme.onSurface.withValues(alpha: 0.38);
+            return colorScheme.onSurface.withOpacity(0.38);
           }
           if (states.contains(WidgetState.selected)) {
             return colorScheme.primary;
@@ -413,7 +413,7 @@ class AppTheme {
       radioTheme: RadioThemeData(
         fillColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.disabled)) {
-            return colorScheme.onSurface.withValues(alpha: 0.38);
+            return colorScheme.onSurface.withOpacity(0.38);
           }
           if (states.contains(WidgetState.selected)) {
             return colorScheme.primary;
@@ -435,10 +435,10 @@ class AppTheme {
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.disabled)) {
-            return colorScheme.surfaceContainerHighest.withValues(alpha: 0.5);
+            return colorScheme.surfaceContainerHighest.withOpacity(0.5);
           }
           if (states.contains(WidgetState.selected)) {
-            return colorScheme.primary.withValues(alpha: 0.5);
+            return colorScheme.primary.withOpacity(0.5);
           }
           return colorScheme.surfaceContainerHighest;
         }),
@@ -449,7 +449,7 @@ class AppTheme {
         activeTrackColor: colorScheme.primary,
         inactiveTrackColor: colorScheme.surfaceContainerHighest,
         thumbColor: colorScheme.primary,
-        overlayColor: colorScheme.primary.withValues(alpha: 0.12),
+        overlayColor: colorScheme.primary.withOpacity(0.12),
         valueIndicatorColor: colorScheme.primary,
         valueIndicatorTextStyle: TextStyle(
           fontFamily: fontFamily,
@@ -460,7 +460,7 @@ class AppTheme {
 
       // ============== Scrollbar ==============
       scrollbarTheme: ScrollbarThemeData(
-        thumbColor: WidgetStateProperty.all(colorScheme.primary.withValues(alpha: 0.5)),
+        thumbColor: WidgetStateProperty.all(colorScheme.primary.withOpacity(0.5)),
         trackColor: WidgetStateProperty.all(colorScheme.surfaceContainerHighest),
         thickness: WidgetStateProperty.all(8),
         radius: const Radius.circular(radiusS),
@@ -693,7 +693,7 @@ class AppTheme {
         hintStyle: TextStyle(
           fontFamily: fontFamily,
           fontSize: 14,
-          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+          color: colorScheme.onSurfaceVariant.withOpacity(0.7),
         ),
         floatingLabelStyle: TextStyle(
           fontFamily: fontFamily,
@@ -705,7 +705,7 @@ class AppTheme {
       // ============== Text Selection ==============
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: colorScheme.primary,
-        selectionColor: colorScheme.primary.withValues(alpha: 0.3),
+        selectionColor: colorScheme.primary.withOpacity(0.3),
         selectionHandleColor: colorScheme.primary,
       ),
 
@@ -755,7 +755,7 @@ class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: colorScheme.surfaceContainerHighest,
         selectedColor: colorScheme.secondaryContainer,
-        disabledColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        disabledColor: colorScheme.surfaceContainerHighest.withOpacity(0.5),
         labelStyle: TextStyle(
           fontFamily: fontFamily,
           fontSize: 12,
@@ -874,7 +874,7 @@ class AppTheme {
       checkboxTheme: CheckboxThemeData(
         fillColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.disabled)) {
-            return colorScheme.onSurface.withValues(alpha: 0.38);
+            return colorScheme.onSurface.withOpacity(0.38);
           }
           if (states.contains(WidgetState.selected)) {
             return colorScheme.primary;
@@ -892,7 +892,7 @@ class AppTheme {
       radioTheme: RadioThemeData(
         fillColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.disabled)) {
-            return colorScheme.onSurface.withValues(alpha: 0.38);
+            return colorScheme.onSurface.withOpacity(0.38);
           }
           if (states.contains(WidgetState.selected)) {
             return colorScheme.primary;
@@ -914,10 +914,10 @@ class AppTheme {
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.disabled)) {
-            return colorScheme.surfaceContainerHighest.withValues(alpha: 0.5);
+            return colorScheme.surfaceContainerHighest.withOpacity(0.5);
           }
           if (states.contains(WidgetState.selected)) {
-            return colorScheme.primary.withValues(alpha: 0.5);
+            return colorScheme.primary.withOpacity(0.5);
           }
           return colorScheme.surfaceContainerHighest;
         }),
@@ -928,7 +928,7 @@ class AppTheme {
         activeTrackColor: colorScheme.primary,
         inactiveTrackColor: colorScheme.surfaceContainerHighest,
         thumbColor: colorScheme.primary,
-        overlayColor: colorScheme.primary.withValues(alpha: 0.12),
+        overlayColor: colorScheme.primary.withOpacity(0.12),
         valueIndicatorColor: colorScheme.primary,
         valueIndicatorTextStyle: TextStyle(
           fontFamily: fontFamily,
@@ -939,7 +939,7 @@ class AppTheme {
 
       // ============== Scrollbar ==============
       scrollbarTheme: ScrollbarThemeData(
-        thumbColor: WidgetStateProperty.all(colorScheme.primary.withValues(alpha: 0.5)),
+        thumbColor: WidgetStateProperty.all(colorScheme.primary.withOpacity(0.5)),
         trackColor: WidgetStateProperty.all(colorScheme.surfaceContainerHighest),
         thickness: WidgetStateProperty.all(8),
         radius: const Radius.circular(radiusS),
