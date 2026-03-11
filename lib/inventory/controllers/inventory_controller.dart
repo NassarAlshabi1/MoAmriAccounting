@@ -147,7 +147,8 @@ class InventoryController extends GetxController {
 
   @override
   void onInit() {
-    firstLoad();
+    // تم إزالة firstLoad() من هنا لمنع التنفيذ المتكرر والمتزامن للعمليات
+    // يتم استدعاؤها تلقائياً عند بناء الواجهة
     super.onInit();
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:io' as io;
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 import 'package:path_provider/path_provider.dart';
@@ -50,8 +51,13 @@ class MyDatabase {
         await _createTables(db);
       },
       onOpen: (Database db) async {
-        // Enable foreign keys
-        await db.execute("PRAGMA foreign_keys=ON");
+        // Enable foreign keys with error handling
+        try {
+          await db.execute("PRAGMA foreign_keys=ON");
+        } catch (e) {
+          // تجاهل الخطأ إذا فشل تفعيل مفاتيح الربط الأجنبي
+          debugPrint('Warning: Could not enable foreign keys: $e');
+        }
       },
     );
   }

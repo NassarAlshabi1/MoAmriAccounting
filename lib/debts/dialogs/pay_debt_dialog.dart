@@ -17,8 +17,8 @@ Future<bool?> showPayDebtDialog(
         final formKey = GlobalKey<FormState>();
         final amountController = TextEditingController();
         final noteController = TextEditingController();
-        Currency? selectedCurrency = mainController.currencies.value.isNotEmpty
-            ? mainController.currencies.value.first
+        Currency? selectedCurrency = mainController.currencies.isNotEmpty
+            ? mainController.currencies.first
             : null;
 
         double remainingAmount =
@@ -121,7 +121,7 @@ Future<bool?> showPayDebtDialog(
                                 filled: true,
                                 fillColor: Colors.white,
                               ),
-                              items: mainController.currencies.value.map((currency) {
+                              items: mainController.currencies.map((currency) {
                                 return DropdownMenuItem<Currency?>(
                                   value: currency,
                                   child: Text(

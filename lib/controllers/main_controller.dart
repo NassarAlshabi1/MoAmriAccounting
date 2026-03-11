@@ -82,6 +82,8 @@ class MainController extends GetxController {
         Get.off(() => const StoreSetupPage());
       } else {
         debugPrint('Store found, showing login dialog');
+        // إضافة تأخير 500ms لضمان استقرار واجهة SplashScreen
+        await Future.delayed(const Duration(milliseconds: 500));
         // Use addPostFrameCallback to ensure UI is ready
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _showLoginDialog();
