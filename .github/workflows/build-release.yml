@@ -94,6 +94,9 @@ jobs:
       - name: Get Flutter Dependencies
         run: flutter pub get
 
+      - name: Generate Launcher Icons
+        run: dart run flutter_launcher_icons
+
       - name: Enable Windows Desktop
         run: flutter config --enable-windows-desktop
 
@@ -136,6 +139,30 @@ jobs:
 
       - name: Get Flutter Dependencies
         run: flutter pub get
+
+      # إصلاح: إضافة خطوة توليد الأيقونات المفقودة
+      - name: Generate Launcher Icons
+        run: dart run flutter_launcher_icons
+
+      # إصلاح: تنظيف البناء السابق للتأكد من عدم وجود ملفات تالفة
+      - name: Clean Build
+        run: flutter clean
+
+      - name: Get Dependencies Again
+        run: flutter pub get
+
+      # إصلاح: التحقق من صحة ملفات الأيقونات
+      - name: Verify Icon Files
+        run: |
+          echo "Checking icon files..."
+          for dir in android/app/src/main/res/mipmap-*/; do
+            if [ -f "${dir}ic_launcher.png" ]; then
+              echo "✓ Found: ${dir}ic_launcher.png"
+              file "${dir}ic_launcher.png"
+            else
+              echo "✗ Missing: ${dir}ic_launcher.png"
+            fi
+          done
 
       - name: Build Release APK (Signed)
         run: flutter build apk --release
