@@ -18,7 +18,7 @@ Future<bool> showCurrenciesDialog(MainController mainController) async {
       barrierDismissible: false,
       builder: (BuildContext context) {
         CurrenciesDataSource currenciesDataSource =
-            CurrenciesDataSource(mainController.currencies.value);
+            CurrenciesDataSource(mainController.currencies.toList());
         final DataGridController dataGridController = DataGridController();
 
         var loading = false;

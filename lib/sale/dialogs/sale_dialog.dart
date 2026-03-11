@@ -48,7 +48,7 @@ Future<bool?> showSaleDialog(
         for (var saleData in saleController.dataSource.value.salesData) {
           MyMaterial material = saleData['Material'];
           double rateExchange = 0.0;
-          for (var currency in mainController.currencies.value) {
+          for (var currency in mainController.currencies.toList()) {
             if (currency.name == material.currency) {
               rateExchange = currency.exchangeRate;
               break;

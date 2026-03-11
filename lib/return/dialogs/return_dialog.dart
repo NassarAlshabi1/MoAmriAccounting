@@ -15,7 +15,7 @@ Future<bool?> showReturnDialog(
         for (var saleData in returnController.billDataSource.value.salesData) {
           MyMaterial material = saleData['Material'];
           double rateExchange = 0.0;
-          for (var currency in mainController.currencies.value) {
+          for (var currency in mainController.currencies.toList()) {
             if (currency.name == material.currency) {
               rateExchange = currency.exchangeRate;
               break;
@@ -39,7 +39,7 @@ Future<bool?> showReturnDialog(
             in returnController.returnedDataSource.value.returnsData) {
           MyMaterial material = returnData['Material'];
           double rateExchange = 0.0;
-          for (var currency in mainController.currencies.value) {
+          for (var currency in mainController.currencies.toList()) {
             if (currency.name == material.currency) {
               rateExchange = currency.exchangeRate;
               break;

@@ -4,7 +4,10 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   audioplayers_windows
+  flutter_secure_storage_windows
+  local_auth_windows
   printing
+  screen_retriever
   window_manager
 )
 

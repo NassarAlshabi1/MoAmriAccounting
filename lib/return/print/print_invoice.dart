@@ -178,7 +178,7 @@ Future<dynamic> printInvoiceRoll(
   double totalInMainCurrency = 0;
   for (var currency in currenciesTotals.keys) {
     double rateExchange = 0.0;
-    for (var currency2 in mainController.currencies.value) {
+    for (var currency2 in mainController.currencies.toList()) {
       if (currency2.name == currency) {
         rateExchange = currency2.exchangeRate;
         break;
@@ -232,7 +232,7 @@ Future<dynamic> printInvoiceRoll(
         SizedBox(width: 10)
       ]));
       double rateExchange = 0.0;
-      for (var currency2 in mainController.currencies.value) {
+      for (var currency2 in mainController.currencies.toList()) {
         if (currency2.name == payment.currency) {
           rateExchange = currency2.exchangeRate;
           break;
@@ -460,7 +460,7 @@ Future<dynamic> printInvoiceA4(
   double totalInMainCurrency = 0;
   for (var currency in currenciesTotals.keys) {
     double rateExchange = 0.0;
-    for (var currency2 in mainController.currencies.value) {
+    for (var currency2 in mainController.currencies.toList()) {
       if (currency2.name == currency) {
         rateExchange = currency2.exchangeRate;
         break;
@@ -530,7 +530,7 @@ Future<dynamic> printInvoiceA4(
         Expanded(child: Text(GlobalUtils.getMoney(payment.amount))),
       ]));
       double rateExchange = 0.0;
-      for (var currency2 in mainController.currencies.value) {
+      for (var currency2 in mainController.currencies.toList()) {
         if (currency2.name == payment.currency) {
           rateExchange = currency2.exchangeRate;
           break;
