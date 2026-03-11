@@ -53,6 +53,9 @@ dependencies:
   get_storage: ^2.1.1
   audioplayers: ^5.2.1
   # audioplayers: ^5.2.1
+  
+  # Security
+  crypto: ^3.0.3
 
 dev_dependencies:
   flutter_test:
