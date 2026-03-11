@@ -53,6 +53,8 @@ jobs:
 
       - name: Get Flutter Dependencies
         run: flutter pub get
+name: Generate Launcher Icons
+        run: dart run flutter_launcher_icons
 
       - name: Enable Linux Desktop
         run: flutter config --enable-linux-desktop
