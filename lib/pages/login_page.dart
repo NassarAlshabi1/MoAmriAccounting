@@ -6,6 +6,9 @@ import 'package:get/get.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../controllers/login_controller.dart';
+import '../theme/app_colors.dart';
+import '../theme/custom_widgets_theme.dart';
+import '../theme/app_theme.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -13,231 +16,232 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final LoginController controller = Get.put(LoginController());
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: Container(
-        height: 280,
-        width: 450,
-        decoration: BoxDecoration(
-            border: Border.all(color: Colors.blue[400]!, width: 1),
-            borderRadius: BorderRadius.circular(5),
-            shape: BoxShape.rectangle,
-            color: Colors.white),
-        child: Scaffold(
-          appBar: AppBar(
-            centerTitle: true,
-            leading: null,
-            automaticallyImplyLeading: false,
-            title: const DragToMoveArea(
-              child: Row(
-                children: [
-                  Text(
-                    'تسجيل الدخول',
-                    style: TextStyle(color: Colors.black),
+      child: Center(
+        child: Container(
+          width: 480,
+          constraints: const BoxConstraints(maxHeight: 400),
+          decoration: CustomWidgetsTheme.elevatedCardDecoration(
+            borderRadius: 20,
+            elevation: 8,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Scaffold(
+              appBar: AppBar(
+                centerTitle: true,
+                leading: null,
+                automaticallyImplyLeading: false,
+                title: DragToMoveArea(
+                  child: Row(
+                    children: [
+                      Icon(Icons.login_rounded, color: colorScheme.primary, size: 24),
+                      const SizedBox(width: 8),
+                      Text(
+                        'تسجيل الدخول',
+                        style: TextStyle(
+                          fontFamily: 'ReadexPro',
+                          color: colorScheme.onSurface,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                backgroundColor: colorScheme.surface,
+                foregroundColor: colorScheme.onSurfaceVariant,
+                elevation: 0,
+                systemOverlayStyle: SystemUiOverlayStyle(
+                  statusBarColor: colorScheme.surface,
+                  systemNavigationBarColor: Colors.transparent,
+                  systemNavigationBarIconBrightness: colorScheme.brightness == Brightness.dark
+                      ? Brightness.light
+                      : Brightness.dark,
+                  statusBarIconBrightness: colorScheme.brightness == Brightness.dark
+                      ? Brightness.light
+                      : Brightness.dark,
+                  statusBarBrightness: colorScheme.brightness == Brightness.dark
+                      ? Brightness.dark
+                      : Brightness.light,
+                ),
+                actions: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: IconButton(
+                      onPressed: () {
+                        exit(0);
+                      },
+                      style: IconButton.styleFrom(
+                        backgroundColor: colorScheme.errorContainer,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      icon: Icon(
+                        Icons.close_rounded,
+                        color: colorScheme.error,
+                      ),
+                      tooltip: 'إغلاق',
+                    ),
                   ),
                 ],
               ),
-            ),
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.grey,
-            elevation: 0,
-            systemOverlayStyle: const SystemUiOverlayStyle(
-                statusBarColor: Colors.white,
-                systemNavigationBarColor: Colors.transparent,
-                systemNavigationBarIconBrightness: Brightness.dark,
-                statusBarIconBrightness: Brightness.dark,
-                statusBarBrightness: Brightness.light),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: IconButton(
-                  onPressed: () {
-                    exit(0);
-                  },
-                  icon: const Icon(
-                    Icons.close,
-                    color: Colors.red,
+              body: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Form(
+                    key: controller.formKey,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Logo Section
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primaryContainer,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.account_balance_rounded,
+                            size: 48,
+                            color: colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        // Username Field
+                        TextFormField(
+                          textCapitalization: TextCapitalization.sentences,
+                          controller: controller.usernameController,
+                          decoration: CustomWidgetsTheme.primaryInputDecoration(
+                            hintText: 'اسم المستخدم',
+                            prefixIcon: Icon(
+                              Icons.person_rounded,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          keyboardType: TextInputType.text,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (value) {
+                            FocusScope.of(context).nextFocus();
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // Password Field
+                        TextFormField(
+                          textCapitalization: TextCapitalization.sentences,
+                          controller: controller.passwordController,
+                          decoration: CustomWidgetsTheme.primaryInputDecoration(
+                            hintText: 'كلمة المرور',
+                            prefixIcon: Icon(
+                              Icons.lock_rounded,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          keyboardType: TextInputType.text,
+                          obscureText: true,
+                          textInputAction: TextInputAction.done,
+                          onFieldSubmitted: (value) async {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            controller.logining.value = true;
+                            await controller.login();
+                            controller.logining.value = false;
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        // Login Button
+                        Obx(
+                          () => SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: controller.logining.value
+                                ? Center(
+                                    child: CircularProgressIndicator(
+                                      color: colorScheme.primary,
+                                    ),
+                                  )
+                                : FilledButton.icon(
+                                    onPressed: () async {
+                                      FocusManager.instance.primaryFocus?.unfocus();
+                                      controller.logining.value = true;
+                                      await controller.login();
+                                      controller.logining.value = false;
+                                    },
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: colorScheme.primary,
+                                      foregroundColor: colorScheme.onPrimary,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    icon: const Icon(Icons.login_rounded),
+                                    label: const Text(
+                                      'تسجيل دخول',
+                                      style: TextStyle(
+                                        fontFamily: 'ReadexPro',
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        
+                        // Theme Toggle
+                        const SizedBox(height: 16),
+                        Obx(() => Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              ThemeController.to.isDarkMode 
+                                  ? Icons.dark_mode_rounded 
+                                  : Icons.light_mode_rounded,
+                              size: 20,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'المظهر:',
+                              style: TextStyle(
+                                fontFamily: 'ReadexPro',
+                                fontSize: 13,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () => ThemeController.to.toggleTheme(),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  ThemeController.to.isDarkMode ? 'داكن' : 'فاتح',
+                                  style: TextStyle(
+                                    fontFamily: 'ReadexPro',
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: colorScheme.primary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        )),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ],
-          ),
-          body: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              Form(
-                key: controller.formKey,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                        child: Stack(
-                      children: <Widget>[
-                        Container(
-                          width: double.infinity,
-                          margin: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                          padding: const EdgeInsets.only(bottom: 10),
-                          decoration: BoxDecoration(
-                              border: Border.all(
-                                  color: Colors.blue[400]!, width: 1),
-                              borderRadius: BorderRadius.circular(5),
-                              shape: BoxShape.rectangle,
-                              color: Colors.white),
-                          child: SingleChildScrollView(
-                            child: FocusTraversalGroup(
-                              policy: OrderedTraversalPolicy(),
-                              child: Column(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  const SizedBox(
-                                    height: 20,
-                                  ),
-                                  Padding(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal:
-                                            MediaQuery.of(context).size.width *
-                                                0.06),
-                                    child: TextFormField(
-                                      textCapitalization:
-                                          TextCapitalization.sentences,
-                                      controller: controller.usernameController,
-                                      decoration: InputDecoration(
-                                        filled: true,
-                                        fillColor: Colors.white,
-                                        isDense: true,
-                                        contentPadding:
-                                            const EdgeInsets.all(10),
-                                        focusedBorder: OutlineInputBorder(
-                                          borderSide: const BorderSide(
-                                              color: Colors.green),
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        border: const OutlineInputBorder(
-                                          borderRadius: BorderRadius.all(
-                                              Radius.circular(8.0)),
-                                        ),
-                                        counterText: "",
-                                        hintText: 'اسم المستخدم',
-                                      ),
-                                      keyboardType: TextInputType.text,
-                                      onFieldSubmitted: (value) async {
-                                        FocusManager.instance.primaryFocus
-                                            ?.unfocus();
-                                        controller.logining.value = true;
-                                        await controller.login();
-                                        controller.logining.value = false;
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(
-                                    height: 10,
-                                  ),
-                                  Padding(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal:
-                                            MediaQuery.of(context).size.width *
-                                                0.06),
-                                    child: TextFormField(
-                                      textCapitalization:
-                                          TextCapitalization.sentences,
-                                      controller: controller.passwordController,
-                                      decoration: InputDecoration(
-                                        filled: true,
-                                        fillColor: Colors.white,
-                                        isDense: true,
-                                        contentPadding:
-                                            const EdgeInsets.all(10),
-                                        focusedBorder: OutlineInputBorder(
-                                          borderSide: const BorderSide(
-                                              color: Colors.green),
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        border: const OutlineInputBorder(
-                                          borderRadius: BorderRadius.all(
-                                              Radius.circular(8.0)),
-                                        ),
-                                        counterText: "",
-                                        hintText: 'كلمة المرور',
-                                      ),
-                                      keyboardType: TextInputType.text,
-                                      obscureText: true,
-                                      onFieldSubmitted: (value) async {
-                                        FocusManager.instance.primaryFocus
-                                            ?.unfocus();
-                                        controller.logining.value = true;
-                                        await controller.login();
-                                        controller.logining.value = false;
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(
-                                    height: 10,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          right: 30,
-                          top: 12,
-                          child: Container(
-                            padding: const EdgeInsets.only(
-                                bottom: 10, left: 10, right: 10),
-                            color: Colors.white,
-                            child: const Text(
-                              'معلومات المستخدم',
-                              style:
-                                  TextStyle(color: Colors.black, fontSize: 12),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ))
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8.0, 20, 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Obx(
-                      () => controller.logining.value
-                          ? const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 30),
-                              child: CircularProgressIndicator(),
-                            )
-                          : OutlinedButton.icon(
-                              onPressed: () async {
-                                FocusManager.instance.primaryFocus?.unfocus();
-                                controller.logining.value = true;
-                                await controller.login();
-                                controller.logining.value = false;
-                              },
-                              style: ButtonStyle(
-                                  shape: MaterialStateProperty.all(
-                                      RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8.0),
-                                  )),
-                                  backgroundColor:
-                                      MaterialStateProperty.all(Colors.white),
-                                  foregroundColor:
-                                      MaterialStateProperty.all(Colors.green)),
-                              icon: const Icon(Icons.thumb_up),
-                              label: const Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: Text('تسجيل دخول'),
-                              ),
-                            ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

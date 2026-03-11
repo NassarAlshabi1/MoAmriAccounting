@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'controllers/main_controller.dart';
 import 'package:window_manager/window_manager.dart';
+import 'theme/app_theme.dart';
+import 'theme/app_colors.dart';
 
 void main() async {
   // Ensure Flutter binding is initialized first
@@ -11,6 +13,9 @@ void main() async {
 
   // Initialize storage
   await GetStorage.init();
+
+  // Initialize theme controller
+  Get.put(ThemeController());
 
   // Initialize window manager only for desktop platforms
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
@@ -40,14 +45,15 @@ class MoAmriAccountingApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GetMaterialApp(
+    final themeController = ThemeController.to;
+    
+    return Obx(() => GetMaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        fontFamily: 'ReadexPro',
-        useMaterial3: false,
-      ),
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeController.isDarkMode ? ThemeMode.dark : ThemeMode.light,
       home: const SplashScreen(),
-    );
+    ));
   }
 }
 
@@ -58,50 +64,76 @@ class SplashScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     // Initialize controller
     final controller = Get.put(MainController());
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        backgroundColor: const Color(0xFF3d8fdc),
+        backgroundColor: colorScheme.primary,
         body: Obx(() {
           if (controller.loading.value) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // App logo/icon
+                  // App logo/icon with Material 3 styling
                   Container(
                     width: 100,
                     height: 100,
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
+                      color: colorScheme.onPrimary,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
                     ),
-                    child: const Icon(
-                      Icons.calculate,
+                    child: Icon(
+                      Icons.calculate_rounded,
                       size: 60,
-                      color: Color(0xFF3d8fdc),
+                      color: colorScheme.primary,
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
+                  Text(
                     'محاسبي',
                     style: TextStyle(
+                      fontFamily: 'ReadexPro',
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: colorScheme.onPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'نظام المحاسبة المتكامل',
+                    style: TextStyle(
+                      fontFamily: 'ReadexPro',
+                      fontSize: 14,
+                      color: colorScheme.onPrimary.withOpacity(0.8),
                     ),
                   ),
                   const SizedBox(height: 32),
-                  const CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor: AlwaysStoppedAnimation<Color>(colorScheme.onPrimary),
+                      backgroundColor: colorScheme.onPrimary.withOpacity(0.3),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'جاري التحميل...',
                     style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white.withOpacity(0.9),
+                      fontFamily: 'ReadexPro',
+                      fontSize: 14,
+                      color: colorScheme.onPrimary.withOpacity(0.9),
                     ),
                   ),
                 ],
@@ -117,41 +149,62 @@ class SplashScreen extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 64,
-                      color: Colors.white,
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: colorScheme.errorContainer,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Icon(
+                        Icons.error_outline_rounded,
+                        size: 48,
+                        color: colorScheme.error,
+                      ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     Text(
                       'حدث خطأ',
                       style: TextStyle(
+                        fontFamily: 'ReadexPro',
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: colorScheme.onPrimary,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      controller.error.value,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white.withOpacity(0.9),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: colorScheme.onPrimary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        controller.error.value,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'ReadexPro',
+                          fontSize: 14,
+                          color: colorScheme.onPrimary.withOpacity(0.9),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
-                    ElevatedButton.icon(
+                    FilledButton.icon(
                       onPressed: () {
                         controller.error.value = '';
                         controller.loading.value = true;
                         controller.initializeApp();
                       },
-                      icon: const Icon(Icons.refresh),
+                      icon: const Icon(Icons.refresh_rounded),
                       label: const Text('إعادة المحاولة'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF3d8fdc),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: colorScheme.onPrimary,
+                        foregroundColor: colorScheme.primary,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ],
