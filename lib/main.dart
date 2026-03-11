@@ -5,10 +5,6 @@ import 'controllers/main_controller.dart';
 import 'theme/app_theme.dart';
 import 'theme/app_colors.dart';
 
-// Conditional import for window_manager (desktop only)
-import 'window_manager_stub.dart'
-    if (dart.library.io) 'window_manager_impl.dart';
-
 void main() async {
   // Ensure Flutter binding is initialized first
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,9 +14,6 @@ void main() async {
 
   // Initialize theme controller
   Get.put(ThemeController());
-
-  // Initialize window manager only for desktop platforms
-  await initializeWindowManager();
 
   runApp(const MoAmriAccountingApp());
 }

@@ -3,13 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../controllers/login_controller.dart';
-import '../theme/app_colors.dart';
 import '../theme/custom_widgets_theme.dart';
 import '../theme/app_theme.dart';
-
-// Conditional import for window_manager (desktop only)
-import '../window_manager_stub.dart'
-    if (dart.library.io) '../window_manager_impl.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -19,232 +14,286 @@ class LoginPage extends StatelessWidget {
     final LoginController controller = Get.put(LoginController());
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final screenSize = MediaQuery.of(context).size;
     
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: Center(
-        child: Container(
-          width: 480,
-          constraints: const BoxConstraints(maxHeight: 400),
-          decoration: CustomWidgetsTheme.elevatedCardDecoration(
-            borderRadius: 20,
-            elevation: 8,
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Scaffold(
-              appBar: AppBar(
-                centerTitle: true,
-                leading: null,
-                automaticallyImplyLeading: false,
-                title: Row(
+      child: Scaffold(
+        backgroundColor: colorScheme.surface,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: screenSize.height - 48,
+              ),
+              child: IntrinsicHeight(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.login_rounded, color: colorScheme.primary, size: 24),
-                    const SizedBox(width: 8),
+                    // Logo Section
+                    _buildLogoSection(colorScheme),
+                    
+                    const SizedBox(height: 32),
+                    
+                    // Login Card
+                    Container(
+                      constraints: const BoxConstraints(maxWidth: 400),
+                      child: Card(
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: BorderSide(color: colorScheme.outlineVariant),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Form(
+                            key: controller.formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // Title
+                                Text(
+                                  'تسجيل الدخول',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontFamily: 'ReadexPro',
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: colorScheme.onSurface,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'أدخل بياناتك للوصول إلى حسابك',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontFamily: 'ReadexPro',
+                                    fontSize: 14,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                const SizedBox(height: 32),
+                                
+                                // Username Field
+                                TextFormField(
+                                  textCapitalization: TextCapitalization.sentences,
+                                  controller: controller.usernameController,
+                                  decoration: CustomWidgetsTheme.primaryInputDecoration(
+                                    hintText: 'اسم المستخدم',
+                                    prefixIcon: Icon(
+                                      Icons.person_rounded,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  keyboardType: TextInputType.text,
+                                  textInputAction: TextInputAction.next,
+                                  onFieldSubmitted: (value) {
+                                    FocusScope.of(context).nextFocus();
+                                  },
+                                ),
+                                const SizedBox(height: 16),
+                                
+                                // Password Field
+                                TextFormField(
+                                  textCapitalization: TextCapitalization.sentences,
+                                  controller: controller.passwordController,
+                                  decoration: CustomWidgetsTheme.primaryInputDecoration(
+                                    hintText: 'كلمة المرور',
+                                    prefixIcon: Icon(
+                                      Icons.lock_rounded,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  keyboardType: TextInputType.text,
+                                  obscureText: true,
+                                  textInputAction: TextInputAction.done,
+                                  onFieldSubmitted: (value) async {
+                                    FocusManager.instance.primaryFocus?.unfocus();
+                                    controller.logining.value = true;
+                                    await controller.login();
+                                    controller.logining.value = false;
+                                  },
+                                ),
+                                const SizedBox(height: 24),
+                                
+                                // Login Button
+                                Obx(
+                                  () => SizedBox(
+                                    height: 50,
+                                    child: controller.logining.value
+                                        ? Center(
+                                            child: CircularProgressIndicator(
+                                              color: colorScheme.primary,
+                                            ),
+                                          )
+                                        : FilledButton.icon(
+                                            onPressed: () async {
+                                              FocusManager.instance.primaryFocus?.unfocus();
+                                              controller.logining.value = true;
+                                              await controller.login();
+                                              controller.logining.value = false;
+                                            },
+                                            style: FilledButton.styleFrom(
+                                              backgroundColor: colorScheme.primary,
+                                              foregroundColor: colorScheme.onPrimary,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                            ),
+                                            icon: const Icon(Icons.login_rounded),
+                                            label: const Text(
+                                              'تسجيل دخول',
+                                              style: TextStyle(
+                                                fontFamily: 'ReadexPro',
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 24),
+                    
+                    // Theme Toggle
+                    Obx(() => Container(
+                      constraints: const BoxConstraints(maxWidth: 400),
+                      child: Card(
+                        elevation: 0,
+                        color: colorScheme.surfaceContainerHighest,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                ThemeController.to.isDarkMode 
+                                    ? Icons.dark_mode_rounded 
+                                    : Icons.light_mode_rounded,
+                                size: 20,
+                                color: colorScheme.primary,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'المظهر:',
+                                style: TextStyle(
+                                  fontFamily: 'ReadexPro',
+                                  fontSize: 14,
+                                  color: colorScheme.onSurface,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: () => ThemeController.to.toggleTheme(),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.primary,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    ThemeController.to.isDarkMode ? 'داكن' : 'فاتح',
+                                    style: TextStyle(
+                                      fontFamily: 'ReadexPro',
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: colorScheme.onPrimary,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    )),
+                    
+                    const SizedBox(height: 24),
+                    
+                    // Version info
                     Text(
-                      'تسجيل الدخول',
+                      'الإصدار 1.0.0',
                       style: TextStyle(
                         fontFamily: 'ReadexPro',
-                        color: colorScheme.onSurface,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
-                ),
-                backgroundColor: colorScheme.surface,
-                foregroundColor: colorScheme.onSurfaceVariant,
-                elevation: 0,
-                systemOverlayStyle: SystemUiOverlayStyle(
-                  statusBarColor: colorScheme.surface,
-                  systemNavigationBarColor: Colors.transparent,
-                  systemNavigationBarIconBrightness: colorScheme.brightness == Brightness.dark
-                      ? Brightness.light
-                      : Brightness.dark,
-                  statusBarIconBrightness: colorScheme.brightness == Brightness.dark
-                      ? Brightness.light
-                      : Brightness.dark,
-                  statusBarBrightness: colorScheme.brightness == Brightness.dark
-                      ? Brightness.dark
-                      : Brightness.light,
-                ),
-                actions: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: IconButton(
-                      onPressed: () {
-                        // On mobile, just pop the route
-                        Navigator.of(context).pop();
-                      },
-                      style: IconButton.styleFrom(
-                        backgroundColor: colorScheme.errorContainer,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      icon: Icon(
-                        Icons.close_rounded,
-                        color: colorScheme.error,
-                      ),
-                      tooltip: 'إغلاق',
-                    ),
-                  ),
-                ],
-              ),
-              body: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Form(
-                    key: controller.formKey,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Logo Section
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: colorScheme.primaryContainer,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.account_balance_rounded,
-                            size: 48,
-                            color: colorScheme.primary,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        
-                        // Username Field
-                        TextFormField(
-                          textCapitalization: TextCapitalization.sentences,
-                          controller: controller.usernameController,
-                          decoration: CustomWidgetsTheme.primaryInputDecoration(
-                            hintText: 'اسم المستخدم',
-                            prefixIcon: Icon(
-                              Icons.person_rounded,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          keyboardType: TextInputType.text,
-                          textInputAction: TextInputAction.next,
-                          onFieldSubmitted: (value) {
-                            FocusScope.of(context).nextFocus();
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        // Password Field
-                        TextFormField(
-                          textCapitalization: TextCapitalization.sentences,
-                          controller: controller.passwordController,
-                          decoration: CustomWidgetsTheme.primaryInputDecoration(
-                            hintText: 'كلمة المرور',
-                            prefixIcon: Icon(
-                              Icons.lock_rounded,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          keyboardType: TextInputType.text,
-                          obscureText: true,
-                          textInputAction: TextInputAction.done,
-                          onFieldSubmitted: (value) async {
-                            FocusManager.instance.primaryFocus?.unfocus();
-                            controller.logining.value = true;
-                            await controller.login();
-                            controller.logining.value = false;
-                          },
-                        ),
-                        const SizedBox(height: 24),
-                        
-                        // Login Button
-                        Obx(
-                          () => SizedBox(
-                            width: double.infinity,
-                            height: 48,
-                            child: controller.logining.value
-                                ? Center(
-                                    child: CircularProgressIndicator(
-                                      color: colorScheme.primary,
-                                    ),
-                                  )
-                                : FilledButton.icon(
-                                    onPressed: () async {
-                                      FocusManager.instance.primaryFocus?.unfocus();
-                                      controller.logining.value = true;
-                                      await controller.login();
-                                      controller.logining.value = false;
-                                    },
-                                    style: FilledButton.styleFrom(
-                                      backgroundColor: colorScheme.primary,
-                                      foregroundColor: colorScheme.onPrimary,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                    icon: const Icon(Icons.login_rounded),
-                                    label: const Text(
-                                      'تسجيل دخول',
-                                      style: TextStyle(
-                                        fontFamily: 'ReadexPro',
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                          ),
-                        ),
-                        
-                        // Theme Toggle
-                        const SizedBox(height: 16),
-                        Obx(() => Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              ThemeController.to.isDarkMode 
-                                  ? Icons.dark_mode_rounded 
-                                  : Icons.light_mode_rounded,
-                              size: 20,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'المظهر:',
-                              style: TextStyle(
-                                fontFamily: 'ReadexPro',
-                                fontSize: 13,
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            GestureDetector(
-                              onTap: () => ThemeController.to.toggleTheme(),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: colorScheme.surfaceContainerHighest,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  ThemeController.to.isDarkMode ? 'داكن' : 'فاتح',
-                                  style: TextStyle(
-                                    fontFamily: 'ReadexPro',
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: colorScheme.primary,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        )),
-                      ],
-                    ),
-                  ),
                 ),
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildLogoSection(ColorScheme colorScheme) {
+    return Column(
+      children: [
+        // Logo Container
+        Container(
+          width: 100,
+          height: 100,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                colorScheme.primary,
+                colorScheme.primary.withOpacity(0.8),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.primary.withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Icon(
+            Icons.calculate_rounded,
+            size: 50,
+            color: colorScheme.onPrimary,
+          ),
+        ),
+        const SizedBox(height: 24),
+        
+        // App Name
+        Text(
+          'محاسبي',
+          style: TextStyle(
+            fontFamily: 'ReadexPro',
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            color: colorScheme.primary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        
+        // Tagline
+        Text(
+          'نظام المحاسبة المتكامل',
+          style: TextStyle(
+            fontFamily: 'ReadexPro',
+            fontSize: 16,
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
     );
   }
 }
