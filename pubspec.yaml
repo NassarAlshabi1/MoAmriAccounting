@@ -56,6 +56,10 @@ dependencies:
   
   # Security
   crypto: ^3.0.3
+  
+  # Biometric Authentication
+  local_auth: ^2.1.8
+  flutter_secure_storage: ^9.0.0
 
 dev_dependencies:
   flutter_test:

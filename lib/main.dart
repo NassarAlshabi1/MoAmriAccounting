@@ -4,6 +4,7 @@ import 'package:get_storage/get_storage.dart';
 import 'controllers/main_controller.dart';
 import 'theme/app_theme.dart';
 import 'theme/app_colors.dart';
+import 'services/biometric_service.dart';
 
 void main() async {
   // Ensure Flutter binding is initialized first
@@ -14,6 +15,10 @@ void main() async {
 
   // Initialize theme controller
   Get.put(ThemeController());
+  
+  // Initialize biometric service
+  final biometricService = Get.put(BiometricService());
+  await biometricService.init();
 
   runApp(const MoAmriAccountingApp());
 }

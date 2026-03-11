@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../controllers/login_controller.dart';
+import '../services/biometric_service.dart';
 import '../theme/custom_widgets_theme.dart';
 import '../theme/app_theme.dart';
+import '../theme/app_colors.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -12,6 +14,7 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final LoginController controller = Get.put(LoginController());
+    final biometricService = BiometricService.to;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final screenSize = MediaQuery.of(context).size;
@@ -153,6 +156,148 @@ class LoginPage extends StatelessWidget {
                                           ),
                                   ),
                                 ),
+                                
+                                // Biometric Login Section
+                                Obx(() {
+                                  if (!biometricService.isBiometricAvailable || 
+                                      !biometricService.hasSavedCredentials) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  
+                                  return Column(
+                                    children: [
+                                      const SizedBox(height: 16),
+                                      
+                                      // Divider with text
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Divider(
+                                              color: colorScheme.outlineVariant,
+                                            ),
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                                            child: Text(
+                                              'أو',
+                                              style: TextStyle(
+                                                fontFamily: 'ReadexPro',
+                                                fontSize: 12,
+                                                color: colorScheme.onSurfaceVariant,
+                                              ),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: Divider(
+                                              color: colorScheme.outlineVariant,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      
+                                      const SizedBox(height: 16),
+                                      
+                                      // Biometric Button
+                                      OutlinedButton.icon(
+                                        onPressed: () async {
+                                          final result = await biometricService.authenticate(
+                                            localizedReason: 'استخدم ${biometricService.getBiometricTypeName()} لتسجيل الدخول',
+                                          );
+                                          
+                                          if (result.success) {
+                                            // Get saved credentials
+                                            final credentials = await biometricService.getSavedCredentials();
+                                            if (credentials != null) {
+                                              controller.usernameController.text = credentials['username']!;
+                                              controller.passwordController.text = credentials['password']!;
+                                              
+                                              // Auto login
+                                              controller.logining.value = true;
+                                              await controller.login();
+                                              controller.logining.value = false;
+                                            }
+                                          } else {
+                                            // Show error
+                                            Get.snackbar(
+                                              'فشل المصادقة',
+                                              result.message,
+                                              snackPosition: SnackPosition.BOTTOM,
+                                              backgroundColor: colorScheme.errorContainer,
+                                              colorText: colorScheme.onErrorContainer,
+                                            );
+                                          }
+                                        },
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: colorScheme.primary,
+                                          side: BorderSide(color: colorScheme.primary.withOpacity(0.5)),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(vertical: 14),
+                                        ),
+                                        icon: Icon(biometricService.getBiometricIcon()),
+                                        label: Text(
+                                          'تسجيل الدخول بـ ${biometricService.getBiometricTypeName()}',
+                                          style: const TextStyle(
+                                            fontFamily: 'ReadexPro',
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }),
+                                
+                                // Enable Biometric Option (after first login)
+                                Obx(() {
+                                  if (!biometricService.isBiometricAvailable || 
+                                      biometricService.hasSavedCredentials) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  
+                                  return Column(
+                                    children: [
+                                      const SizedBox(height: 16),
+                                      
+                                      // Enable biometric checkbox
+                                      InkWell(
+                                        onTap: () => biometricService.setBiometricEnabled(
+                                          !biometricService.isBiometricEnabled,
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(vertical: 8),
+                                          child: Row(
+                                            children: [
+                                              Checkbox(
+                                                value: biometricService.isBiometricEnabled,
+                                                onChanged: (value) => biometricService.setBiometricEnabled(value ?? false),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Icon(
+                                                biometricService.getBiometricIcon(),
+                                                size: 20,
+                                                color: colorScheme.primary,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: Text(
+                                                  'تفعيل ${biometricService.getBiometricTypeName()} لتسجيل الدخول',
+                                                  style: TextStyle(
+                                                    fontFamily: 'ReadexPro',
+                                                    fontSize: 13,
+                                                    color: colorScheme.onSurface,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }),
                               ],
                             ),
                           ),
