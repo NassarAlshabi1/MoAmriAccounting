@@ -1,14 +1,15 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:window_manager/window_manager.dart';
 
 import '../controllers/login_controller.dart';
 import '../theme/app_colors.dart';
 import '../theme/custom_widgets_theme.dart';
 import '../theme/app_theme.dart';
+
+// Conditional import for window_manager (desktop only)
+import '../window_manager_stub.dart'
+    if (dart.library.io) '../window_manager_impl.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -36,21 +37,19 @@ class LoginPage extends StatelessWidget {
                 centerTitle: true,
                 leading: null,
                 automaticallyImplyLeading: false,
-                title: DragToMoveArea(
-                  child: Row(
-                    children: [
-                      Icon(Icons.login_rounded, color: colorScheme.primary, size: 24),
-                      const SizedBox(width: 8),
-                      Text(
-                        'تسجيل الدخول',
-                        style: TextStyle(
-                          fontFamily: 'ReadexPro',
-                          color: colorScheme.onSurface,
-                          fontWeight: FontWeight.w600,
-                        ),
+                title: Row(
+                  children: [
+                    Icon(Icons.login_rounded, color: colorScheme.primary, size: 24),
+                    const SizedBox(width: 8),
+                    Text(
+                      'تسجيل الدخول',
+                      style: TextStyle(
+                        fontFamily: 'ReadexPro',
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.w600,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
                 backgroundColor: colorScheme.surface,
                 foregroundColor: colorScheme.onSurfaceVariant,
@@ -73,7 +72,8 @@ class LoginPage extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: IconButton(
                       onPressed: () {
-                        exit(0);
+                        // On mobile, just pop the route
+                        Navigator.of(context).pop();
                       },
                       style: IconButton.styleFrom(
                         backgroundColor: colorScheme.errorContainer,

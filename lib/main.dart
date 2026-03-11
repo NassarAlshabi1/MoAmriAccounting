@@ -1,11 +1,13 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'controllers/main_controller.dart';
-import 'package:window_manager/window_manager.dart';
 import 'theme/app_theme.dart';
 import 'theme/app_colors.dart';
+
+// Conditional import for window_manager (desktop only)
+import 'window_manager_stub.dart'
+    if (dart.library.io) 'window_manager_impl.dart';
 
 void main() async {
   // Ensure Flutter binding is initialized first
@@ -18,24 +20,7 @@ void main() async {
   Get.put(ThemeController());
 
   // Initialize window manager only for desktop platforms
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    try {
-      await windowManager.ensureInitialized();
-      const WindowOptions windowOptions = WindowOptions(
-        size: Size(800, 600),
-        center: true,
-        backgroundColor: Colors.white,
-        skipTaskbar: false,
-        titleBarStyle: TitleBarStyle.hidden,
-      );
-      windowManager.waitUntilReadyToShow(windowOptions, () async {
-        await windowManager.show();
-        await windowManager.focus();
-      });
-    } catch (e) {
-      debugPrint('Window manager error: $e');
-    }
-  }
+  await initializeWindowManager();
 
   runApp(const MoAmriAccountingApp());
 }

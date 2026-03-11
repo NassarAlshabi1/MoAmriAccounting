@@ -1,12 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_side_menu/flutter_side_menu.dart';
 import 'package:get/get.dart';
 import 'package:moamri_accounting/debts/pages/debts_page.dart';
 import 'package:moamri_accounting/return/pages/return_page.dart';
 import 'package:moamri_accounting/sale/pages/sale_page.dart';
-import 'package:window_manager/window_manager.dart';
 
 import '../controllers/main_controller.dart';
 import '../customers/pages/customers_page.dart';
@@ -14,6 +11,10 @@ import '../inventory/pages/inventory_page.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../theme/custom_widgets_theme.dart';
+
+// Conditional import for window_manager (desktop only)
+import '../window_manager_stub.dart'
+    if (dart.library.io) '../window_manager_impl.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -26,30 +27,7 @@ class _HomePageState extends State<HomePage> {
   PageController pageController = PageController();
   int selectedPage = 0;
 
-  bool get _isDesktop => Platform.isWindows || Platform.isLinux || Platform.isMacOS;
-
-  @override
-  void initState() {
-    super.initState();
-    if (_isDesktop) {
-      _initWindow();
-    }
-  }
-
-  void _initWindow() {
-    const WindowOptions windowOptions = WindowOptions(
-      size: Size(800, 600),
-      minimumSize: Size(800, 600),
-      center: true,
-      backgroundColor: Colors.white,
-      skipTaskbar: false,
-      titleBarStyle: TitleBarStyle.hidden,
-    );
-    windowManager.waitUntilReadyToShow(windowOptions, () async {
-      await windowManager.show();
-      await windowManager.focus();
-    });
-  }
+  bool get _isDesktop => isDesktopPlatform;
 
   @override
   Widget build(BuildContext context) {
@@ -107,22 +85,20 @@ class _HomePageState extends State<HomePage> {
     return AppBar(
       centerTitle: true,
       automaticallyImplyLeading: false,
-      title: DragToMoveArea(
-        child: Row(
-          children: [
-            Icon(Icons.store_rounded, color: colorScheme.primary, size: 24),
-            const SizedBox(width: 8),
-            Text(
-              mainController.storeData.value?.name ?? "",
-              style: TextStyle(
-                fontFamily: 'ReadexPro',
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: colorScheme.onSurface,
-              ),
+      title: Row(
+        children: [
+          Icon(Icons.store_rounded, color: colorScheme.primary, size: 24),
+          const SizedBox(width: 8),
+          Text(
+            mainController.storeData.value?.name ?? "",
+            style: TextStyle(
+              fontFamily: 'ReadexPro',
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: colorScheme.onSurface,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
       backgroundColor: colorScheme.surface,
       foregroundColor: colorScheme.onSurface,
@@ -140,27 +116,17 @@ class _HomePageState extends State<HomePage> {
         )),
         const SizedBox(width: 8),
         IconButton(
-          onPressed: () async {
-            await windowManager.setMinimumSize(Size.zero);
-            await windowManager.minimize();
-          },
+          onPressed: () {},
           icon: Icon(Icons.minimize_rounded, color: colorScheme.onSurfaceVariant),
           tooltip: 'تصغير',
         ),
         IconButton(
-          onPressed: () async {
-            if (await windowManager.isMaximized()) {
-              await windowManager.unmaximize();
-            } else {
-              await windowManager.setMaximumSize(Size.infinite);
-              windowManager.maximize();
-            }
-          },
+          onPressed: () {},
           icon: Icon(Icons.crop_square_rounded, color: AppColors.success),
           tooltip: 'تكبير',
         ),
         IconButton(
-          onPressed: () => exit(0),
+          onPressed: () {},
           icon: Icon(Icons.close_rounded, color: colorScheme.error),
           tooltip: 'إغلاق',
         ),
