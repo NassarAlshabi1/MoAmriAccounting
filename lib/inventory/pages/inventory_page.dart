@@ -267,7 +267,7 @@ class InventoryPage extends StatelessWidget {
                                             child: CircularProgressIndicator(
                                               strokeWidth: 3,
                                               color: colorScheme.primary,
-                                              backgroundColor: colorScheme.surfaceVariant,
+                                              backgroundColor: colorScheme.surfaceContainerHighest,
                                             ),
                                           ))
                                       : SizedBox.fromSize(size: Size.zero);

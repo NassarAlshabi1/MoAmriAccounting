@@ -6,7 +6,6 @@ import '../controllers/login_controller.dart';
 import '../services/biometric_service.dart';
 import '../theme/custom_widgets_theme.dart';
 import '../theme/app_theme.dart';
-import '../theme/app_colors.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});

@@ -431,9 +431,9 @@ class SalePage extends StatelessWidget {
                       },
                       style: CustomWidgetsTheme.dangerOutlinedButtonStyle(),
                       icon: const Icon(Icons.remove_shopping_cart_rounded, size: 20),
-                      label: const ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: 120),
-                        child: FittedBox(
+                      label: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 120),
+                        child: const FittedBox(
                           fit: BoxFit.fitWidth,
                           child: Text(
                             'إزالة المادة المختارة',
@@ -459,11 +459,11 @@ class SalePage extends StatelessWidget {
                         ),
                       ),
                       icon: const Icon(Icons.clear_all_rounded, size: 20),
-                      label: const FittedBox(
+                      label: FittedBox(
                         fit: BoxFit.fitWidth,
                         child: ConstrainedBox(
-                          constraints: BoxConstraints(maxWidth: 120),
-                          child: Text(
+                          constraints: const BoxConstraints(maxWidth: 120),
+                          child: const Text(
                             'تفريغ قائمة البيع',
                             style: TextStyle(fontFamily: 'ReadexPro'),
                           ),
@@ -483,9 +483,9 @@ class SalePage extends StatelessWidget {
                         ),
                       ),
                       icon: const Icon(Icons.shopping_bag_rounded, size: 20),
-                      label: const ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: 120),
-                        child: FittedBox(
+                      label: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 120),
+                        child: const FittedBox(
                           fit: BoxFit.fitWidth,
                           child: Text(
                             'بيع',

@@ -15,30 +15,9 @@ class CustomWidgetsTheme {
   static SfDataGridThemeData get lightDataGridTheme => SfDataGridThemeData(
         headerColor: AppColors.dataGridHeader,
         headerHoverColor: AppColors.primaryContainer,
-        headerTextStyle: TextStyle(
-          fontFamily: 'ReadexPro',
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: AppColors.onSurface,
-        ),
-        rowStyle: DataGridRowStyle(
-          textStyle: TextStyle(
-            fontFamily: 'ReadexPro',
-            fontSize: 13,
-            color: AppColors.onSurface,
-          ),
-        ),
         currentCellStyle: DataGridCurrentCellStyle(
           borderColor: AppColors.primary,
           borderWidth: 2,
-        ),
-        selectionStyle: DataGridCellStyle(
-          backgroundColor: AppColors.selectedRow,
-          textStyle: TextStyle(
-            fontFamily: 'ReadexPro',
-            fontSize: 13,
-            color: AppColors.onSurface,
-          ),
         ),
         frozenPaneElevation: 0,
         frozenPaneLineColor: AppColors.outlineVariant,
@@ -47,46 +26,15 @@ class CustomWidgetsTheme {
         sortIconColor: AppColors.primary,
         filterIconColor: AppColors.primary,
         filterIconHoverColor: AppColors.primaryContainer,
-        filterPopupTextStyle: TextStyle(
-          fontFamily: 'ReadexPro',
-          fontSize: 13,
-          color: AppColors.onSurface,
-        ),
-        filterPopupDisabledTextStyle: TextStyle(
-          fontFamily: 'ReadexPro',
-          fontSize: 13,
-          color: AppColors.onSurface.withOpacity(0.5),
-        ),
       );
 
   /// Dark theme for Syncfusion DataGrid
   static SfDataGridThemeData get darkDataGridTheme => SfDataGridThemeData(
         headerColor: AppColors.dataGridHeaderDark,
         headerHoverColor: AppColors.primaryContainerDark,
-        headerTextStyle: TextStyle(
-          fontFamily: 'ReadexPro',
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: AppColors.onSurfaceDark,
-        ),
-        rowStyle: DataGridRowStyle(
-          textStyle: TextStyle(
-            fontFamily: 'ReadexPro',
-            fontSize: 13,
-            color: AppColors.onSurfaceDark,
-          ),
-        ),
         currentCellStyle: DataGridCurrentCellStyle(
           borderColor: AppColors.primaryDark,
           borderWidth: 2,
-        ),
-        selectionStyle: DataGridCellStyle(
-          backgroundColor: AppColors.selectedRowDark,
-          textStyle: TextStyle(
-            fontFamily: 'ReadexPro',
-            fontSize: 13,
-            color: AppColors.onSurfaceDark,
-          ),
         ),
         frozenPaneElevation: 0,
         frozenPaneLineColor: AppColors.outlineVariantDark,
@@ -95,16 +43,6 @@ class CustomWidgetsTheme {
         sortIconColor: AppColors.primaryDark,
         filterIconColor: AppColors.primaryDark,
         filterIconHoverColor: AppColors.primaryContainerDark,
-        filterPopupTextStyle: TextStyle(
-          fontFamily: 'ReadexPro',
-          fontSize: 13,
-          color: AppColors.onSurfaceDark,
-        ),
-        filterPopupDisabledTextStyle: TextStyle(
-          fontFamily: 'ReadexPro',
-          fontSize: 13,
-          color: AppColors.onSurfaceDark.withOpacity(0.5),
-        ),
       );
 
   // ============== Custom Button Styles ==============
@@ -375,7 +313,7 @@ class CustomWidgetsTheme {
       ),
       boxShadow: [
         BoxShadow(
-          color: AppColors.shadow.withOpacity(0.05),
+          color: AppColors.shadow.withValues(alpha: 0.05),
           blurRadius: 8,
           offset: const Offset(0, 2),
         ),
@@ -394,7 +332,7 @@ class CustomWidgetsTheme {
       borderRadius: BorderRadius.circular(borderRadius),
       boxShadow: [
         BoxShadow(
-          color: AppColors.shadow.withOpacity(0.1 * elevation / 4),
+          color: AppColors.shadow.withValues(alpha: 0.1 * elevation / 4),
           blurRadius: elevation * 2,
           offset: Offset(0, elevation / 2),
         ),
@@ -413,7 +351,7 @@ class CustomWidgetsTheme {
       color: backgroundColor ?? AppColors.surface,
       borderRadius: BorderRadius.circular(8.0),
       border: Border.all(
-        color: borderColor ?? AppColors.primary.withOpacity(0.5),
+        color: borderColor ?? AppColors.primary.withValues(alpha: 0.5),
         width: 1,
       ),
     );
@@ -425,10 +363,10 @@ class CustomWidgetsTheme {
     Color? borderColor,
   }) {
     return BoxDecoration(
-      color: backgroundColor ?? AppColors.primaryContainer.withOpacity(0.3),
+      color: backgroundColor ?? AppColors.primaryContainer.withValues(alpha: 0.3),
       borderRadius: BorderRadius.circular(8.0),
       border: Border.all(
-        color: borderColor ?? AppColors.primary.withOpacity(0.3),
+        color: borderColor ?? AppColors.primary.withValues(alpha: 0.3),
         width: 1,
       ),
     );
@@ -437,10 +375,10 @@ class CustomWidgetsTheme {
   /// Success box decoration
   static BoxDecoration successBoxDecoration() {
     return BoxDecoration(
-      color: AppColors.successContainer.withOpacity(0.3),
+      color: AppColors.successContainer.withValues(alpha: 0.3),
       borderRadius: BorderRadius.circular(8.0),
       border: Border.all(
-        color: AppColors.success.withOpacity(0.3),
+        color: AppColors.success.withValues(alpha: 0.3),
         width: 1,
       ),
     );
@@ -449,10 +387,10 @@ class CustomWidgetsTheme {
   /// Error box decoration
   static BoxDecoration errorBoxDecoration() {
     return BoxDecoration(
-      color: AppColors.errorContainer.withOpacity(0.3),
+      color: AppColors.errorContainer.withValues(alpha: 0.3),
       borderRadius: BorderRadius.circular(8.0),
       border: Border.all(
-        color: AppColors.error.withOpacity(0.3),
+        color: AppColors.error.withValues(alpha: 0.3),
         width: 1,
       ),
     );
@@ -461,10 +399,10 @@ class CustomWidgetsTheme {
   /// Warning box decoration
   static BoxDecoration warningBoxDecoration() {
     return BoxDecoration(
-      color: AppColors.warningContainer.withOpacity(0.3),
+      color: AppColors.warningContainer.withValues(alpha: 0.3),
       borderRadius: BorderRadius.circular(8.0),
       border: Border.all(
-        color: AppColors.warning.withOpacity(0.3),
+        color: AppColors.warning.withValues(alpha: 0.3),
         width: 1,
       ),
     );

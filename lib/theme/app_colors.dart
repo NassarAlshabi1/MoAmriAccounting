@@ -90,8 +90,8 @@ class AppColors {
   /// Surface color - Background color for widgets
   static const Color surface = Color(0xFFFDFCFF);
 
-  /// Surface variant
-  static const Color surfaceVariant = Color(0xFFDFE2EB);
+  /// Surface container highest - Replaces deprecated surfaceVariant
+  static const Color surfaceContainerHighest = Color(0xFFDFE2EB);
 
   /// Surface tint
   static const Color surfaceTint = Color(0xFF0066CC);
@@ -184,8 +184,8 @@ class AppColors {
   /// Surface dark
   static const Color surfaceDark = Color(0xFF1A1C1E);
 
-  /// Surface variant dark
-  static const Color surfaceVariantDark = Color(0xFF43474E);
+  /// Surface container highest dark
+  static const Color surfaceContainerHighestDark = Color(0xFF43474E);
 
   /// On surface dark
   static const Color onSurfaceDark = Color(0xFFE3E2E6);
@@ -268,7 +268,7 @@ ColorScheme get lightColorScheme => ColorScheme(
       onErrorContainer: AppColors.onErrorContainer,
       surface: AppColors.surface,
       onSurface: AppColors.onSurface,
-      surfaceVariant: AppColors.surfaceVariant,
+      surfaceContainerHighest: AppColors.surfaceContainerHighest,
       onSurfaceVariant: AppColors.onSurfaceVariant,
       outline: AppColors.outline,
       outlineVariant: AppColors.outlineVariant,
@@ -301,7 +301,7 @@ ColorScheme get darkColorScheme => ColorScheme(
       onErrorContainer: AppColors.onErrorContainerDark,
       surface: AppColors.surfaceDark,
       onSurface: AppColors.onSurfaceDark,
-      surfaceVariant: AppColors.surfaceVariantDark,
+      surfaceContainerHighest: AppColors.surfaceContainerHighestDark,
       onSurfaceVariant: AppColors.onSurfaceVariantDark,
       outline: AppColors.outlineDark,
       outlineVariant: AppColors.outlineVariantDark,

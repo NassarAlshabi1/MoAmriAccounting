@@ -17,14 +17,14 @@ class BiometricService extends GetxService {
   // Reactive variables
   final _isBiometricAvailable = false.obs;
   final _isBiometricEnabled = false.obs;
-  final _biometricType = BiometricType.none.obs;
+  BiometricType? _biometricType;
   final _isAuthenticating = false.obs;
   final _hasSavedCredentials = false.obs;
 
   // Getters
   bool get isBiometricAvailable => _isBiometricAvailable.value;
   bool get isBiometricEnabled => _isBiometricEnabled.value;
-  BiometricType get biometricType => _biometricType.value;
+  BiometricType? get biometricType => _biometricType;
   bool get isAuthenticating => _isAuthenticating.value;
   bool get hasSavedCredentials => _hasSavedCredentials.value;
 
@@ -52,11 +52,11 @@ class BiometricService extends GetxService {
         final availableBiometrics = await _localAuth.getAvailableBiometrics();
         
         if (availableBiometrics.isNotEmpty) {
-          _biometricType.value = availableBiometrics.first;
+          _biometricType = availableBiometrics.first;
           
           if (kDebugMode) {
             print('Available biometrics: $availableBiometrics');
-            print('Primary biometric type: ${_biometricType.value}');
+            print('Primary biometric type: ${_biometricType}');
           }
         }
       }
@@ -65,7 +65,7 @@ class BiometricService extends GetxService {
         print('Error checking biometric availability: ${e.message}');
       }
       _isBiometricAvailable.value = false;
-      _biometricType.value = BiometricType.none;
+      _biometricType = null;
     }
   }
 
@@ -208,7 +208,7 @@ class BiometricService extends GetxService {
 
   /// Get biometric type name in Arabic
   String getBiometricTypeName() {
-    switch (_biometricType.value) {
+    switch (_biometricType) {
       case BiometricType.fingerprint:
         return 'بصمة الإصبع';
       case BiometricType.face:
@@ -226,7 +226,7 @@ class BiometricService extends GetxService {
 
   /// Get biometric icon based on type
   IconData getBiometricIcon() {
-    switch (_biometricType.value) {
+    switch (_biometricType) {
       case BiometricType.fingerprint:
         return Icons.fingerprint_rounded;
       case BiometricType.face:

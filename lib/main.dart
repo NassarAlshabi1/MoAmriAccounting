@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'controllers/main_controller.dart';
 import 'theme/app_theme.dart';
-import 'theme/app_colors.dart';
 import 'services/biometric_service.dart';
 
 void main() async {
