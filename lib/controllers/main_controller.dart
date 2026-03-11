@@ -49,11 +49,11 @@ class MainController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _initializeApp();
+    initializeApp();
   }
 
   /// Initialize the application
-  Future<void> _initializeApp() async {
+  Future<void> initializeApp() async {
     try {
       loading.value = true;
       error.value = '';
