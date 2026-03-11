@@ -8,15 +8,15 @@ import 'package:moamri_accounting/database/entities/my_material.dart';
 import 'package:moamri_accounting/database/my_materials_database.dart';
 import 'package:moamri_accounting/dialogs/alerts_dialogs.dart';
 import 'package:moamri_accounting/sale/dialogs/sale_material_dialog.dart';
+import 'package:moamri_accounting/theme/app_colors.dart';
+import 'package:moamri_accounting/theme/app_theme.dart';
+import 'package:moamri_accounting/theme/custom_widgets_theme.dart';
 import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 import '../controllers/sale_controller.dart';
 import '../dialogs/sale_dialog.dart';
-import '../theme/app_colors.dart';
-import '../theme/custom_widgets_theme.dart';
-import '../theme/app_theme.dart';
 
 class SalePage extends StatelessWidget {
   SalePage({super.key});
