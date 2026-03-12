@@ -1,6 +1,8 @@
 import 'dart:developer';
+import 'dart:io';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moamri_accounting/controllers/main_controller.dart';
@@ -13,6 +15,13 @@ import 'package:window_manager/window_manager.dart';
 import '../database/currencies_database.dart';
 import '../database/entities/currency.dart';
 import '../dialogs/alerts_dialogs.dart';
+
+/// Check if running on desktop platform (Windows, Linux, macOS)
+/// Returns false on mobile platforms (Android, iOS) and web
+bool get _isDesktop {
+  if (kIsWeb) return false;
+  return Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+}
 
 class StoreSetupController extends GetxController {
   Rx<bool> creating = false.obs;
@@ -75,21 +84,33 @@ class StoreSetupController extends GetxController {
         mainController.storeData.value = store;
         mainController.currentUser.value = user;
         await mainController.getCurrenies();
-        await AudioPlayer().play(AssetSource('sounds/scanner-beep.mp3'));
+        
+        // Play sound asynchronously without blocking
+        try {
+          AudioPlayer().play(AssetSource('sounds/scanner-beep.mp3')).catchError((e) {
+            debugPrint('Error playing sound: $e');
+          });
+        } catch (e) {
+          debugPrint('Error with audio player: $e');
+        }
+        
         await showSuccessDialog("تم إنشاء متجرك بنجاح");
-        WindowOptions windowOptions = const WindowOptions(
-          size: Size(800, 600),
-          maximumSize: Size(800, 600),
-          // minimumSize: Size(800, 500),
-          center: true,
-          backgroundColor: Colors.transparent,
-          skipTaskbar: false,
-          titleBarStyle: TitleBarStyle.hidden,
-        );
-        await windowManager.waitUntilReadyToShow(windowOptions, () async {
-          await windowManager.show();
-          await windowManager.focus();
-        });
+        
+        // Only configure window manager on desktop platforms
+        if (_isDesktop) {
+          WindowOptions windowOptions = const WindowOptions(
+            size: Size(800, 600),
+            maximumSize: Size(800, 600),
+            center: true,
+            backgroundColor: Colors.transparent,
+            skipTaskbar: false,
+            titleBarStyle: TitleBarStyle.hidden,
+          );
+          await windowManager.waitUntilReadyToShow(windowOptions, () async {
+            await windowManager.show();
+            await windowManager.focus();
+          });
+        }
 
         Get.off(() => const HomePage());
       } catch (e) {

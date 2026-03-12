@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -7,27 +8,43 @@ import 'package:window_manager/window_manager.dart';
 
 import '../controllers/store_setup_controller.dart';
 
+/// Check if running on desktop platform (Windows, Linux, macOS)
+/// Returns false on mobile platforms (Android, iOS) and web
+bool get _isDesktop {
+  if (kIsWeb) return false;
+  final result = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+  debugPrint('Platform check - isAndroid: ${Platform.isAndroid}, isIOS: ${Platform.isIOS}, _isDesktop: $result');
+  return result;
+}
+
 class StoreSetupPage extends StatelessWidget {
   const StoreSetupPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     final StoreSetupController controller = Get.put(StoreSetupController());
-    // TODO show this as login dialog
-    WindowOptions windowOptions = const WindowOptions(
-      size: Size(800, 500),
-      maximumSize: Size(800, 500),
-      minimumSize: Size(800, 500),
-      center: true,
-      backgroundColor: Colors.transparent,
-      skipTaskbar: false,
-      titleBarStyle: TitleBarStyle.hidden,
-    );
-    windowManager.waitUntilReadyToShow(windowOptions, () async {
-      await windowManager.show();
-      await windowManager.focus();
-    });
-    // windowManager.startDragging();
+    
+    // Only configure window manager on desktop platforms
+    if (_isDesktop) {
+      try {
+        WindowOptions windowOptions = const WindowOptions(
+          size: Size(800, 500),
+          maximumSize: Size(800, 500),
+          minimumSize: Size(800, 500),
+          center: true,
+          backgroundColor: Colors.transparent,
+          skipTaskbar: false,
+          titleBarStyle: TitleBarStyle.hidden,
+        );
+        windowManager.waitUntilReadyToShow(windowOptions, () async {
+          await windowManager.show();
+          await windowManager.focus();
+        });
+      } catch (e) {
+        debugPrint('Window manager not available: $e');
+      }
+    }
+    
     return Directionality(
       textDirection: TextDirection.rtl,
       child: DefaultTabController(
@@ -46,12 +63,17 @@ class StoreSetupPage extends StatelessWidget {
               ],
             ),
             centerTitle: true,
-            title: const DragToMoveArea(
-              child: Text(
-                'إعداد متجرك',
-                style: TextStyle(color: Colors.black),
-              ),
-            ),
+            title: _isDesktop 
+                ? const DragToMoveArea(
+                    child: Text(
+                      'إعداد متجرك',
+                      style: TextStyle(color: Colors.black),
+                    ),
+                  )
+                : const Text(
+                    'إعداد متجرك',
+                    style: TextStyle(color: Colors.black),
+                  ),
             backgroundColor: Colors.white,
             foregroundColor: Colors.grey,
             elevation: 0,

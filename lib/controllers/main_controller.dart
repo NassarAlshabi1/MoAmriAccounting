@@ -76,19 +76,16 @@ class MainController extends GetxController {
       // Mark loading as complete
       loading.value = false;
 
-      // Navigate based on store state
-      if (storeData.value == null) {
-        debugPrint('No store found, navigating to StoreSetupPage');
-        Get.off(() => const StoreSetupPage());
-      } else {
-        debugPrint('Store found, showing login dialog');
-        // إضافة تأخير 500ms لضمان استقرار واجهة SplashScreen
-        await Future.delayed(const Duration(milliseconds: 500));
-        // Use addPostFrameCallback to ensure UI is ready
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _showLoginDialog();
-        });
-      }
+      // Use addPostFrameCallback to ensure navigation happens after UI is built
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (storeData.value == null) {
+          debugPrint('No store found, navigating to StoreSetupPage');
+          Get.off(() => const StoreSetupPage());
+        } else {
+          debugPrint('Store found, navigating to LoginPage');
+          Get.off(() => const LoginPage());
+        }
+      });
     } catch (e, stackTrace) {
       debugPrint('Error initializing app: $e');
       debugPrint('Stack trace: $stackTrace');
