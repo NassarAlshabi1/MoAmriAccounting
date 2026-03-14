@@ -9,6 +9,12 @@ import '../inventory/pages/inventory_page.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../theme/custom_widgets_theme.dart';
+import '../features/suppliers/suppliers_page.dart';
+import '../features/reports/reports_page.dart';
+import '../features/settings/settings_page.dart';
+import '../features/debts/debts_page.dart';
+import '../features/expenses/expenses_page.dart';
+import '../features/notifications/notifications_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -597,8 +603,80 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _navigateToPage(int index) {
-    setState(() => _selectedIndex = index);
-    _pageController.jumpToPage(index);
+    // Pages 0-4 are in PageView
+    if (index <= 4) {
+      setState(() => _selectedIndex = index);
+      _pageController.jumpToPage(index);
+      return;
+    }
+    
+    // Other pages navigate to separate screens
+    Widget? page;
+    switch (index) {
+      case 5:
+        page = const SuppliersPage();
+        break;
+      case 6:
+        // Sales invoices - navigate to existing page
+        page = const SalePage();
+        break;
+      case 7:
+        // Purchase invoices - placeholder
+        page = _buildPlaceholderPage('فواتير المشتريات');
+        break;
+      case 8:
+        page = const ExpensesPage();
+        break;
+      case 9:
+        page = const ReportsPage();
+        break;
+      case 10:
+        page = const NotificationsPage();
+        break;
+      case 11:
+        page = _buildPlaceholderPage('المستخدمين');
+        break;
+      case 12:
+        page = const SettingsPage();
+        break;
+      default:
+        setState(() => _selectedIndex = 4);
+        _pageController.jumpToPage(4);
+        return;
+    }
+    
+    if (page != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => page!),
+      );
+    }
+  }
+  
+  Widget _buildPlaceholderPage(String title) {
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.construction_rounded,
+              size: 64,
+              color: AppColors.textHint,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'هذه الميزة قيد التطوير',
+              style: TextStyle(
+                fontSize: 18,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
