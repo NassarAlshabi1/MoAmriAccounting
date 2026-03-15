@@ -46,9 +46,15 @@ class MyDatabase {
     // Open database with version control
     myDatabase = await openDatabase(
       dbPath,
-      version: 1,
+      version: 2,
       onCreate: (Database db, int version) async {
         await _createTables(db);
+      },
+      onUpgrade: (Database db, int oldVersion, int newVersion) async {
+        if (oldVersion < 2) {
+          // Add currency columns to suppliers and supplier_transactions
+          await _migrateToVersion2(db);
+        }
       },
       onOpen: (Database db) async {
         // Enable foreign keys with error handling
@@ -331,6 +337,35 @@ class MyDatabase {
     
     await db.execute('''
     INSERT OR IGNORE INTO sqlite_sequence (name, seq) VALUES ('purchases_debts', 100000)
+    ''');
+  }
+
+  /// Migration to version 2: Add currency support to suppliers
+  static Future<void> _migrateToVersion2(Database db) async {
+    // Check if currency column exists in suppliers table
+    final supplierColumns = await db.rawQuery("PRAGMA table_info(suppliers)");
+    final hasSupplierCurrency = supplierColumns.any((col) => col['name'] == 'currency');
+    
+    if (!hasSupplierCurrency) {
+      await db.execute("ALTER TABLE suppliers ADD COLUMN currency TEXT DEFAULT 'ر.س'");
+      await db.execute("ALTER TABLE suppliers ADD COLUMN balance REAL DEFAULT 0");
+      await db.execute("ALTER TABLE suppliers ADD COLUMN createdAt TEXT");
+      await db.execute("ALTER TABLE suppliers ADD COLUMN updatedAt TEXT");
+    }
+
+    // Create supplier_transactions table if not exists
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS supplier_transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        supplierId INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        amount REAL NOT NULL,
+        currency TEXT DEFAULT 'ر.س',
+        description TEXT DEFAULT '',
+        invoiceId INTEGER,
+        createdAt TEXT NOT NULL,
+        FOREIGN KEY (supplierId) REFERENCES suppliers (id) ON DELETE CASCADE
+      )
     ''');
   }
 

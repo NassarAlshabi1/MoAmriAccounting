@@ -567,24 +567,28 @@ class DebtsPage extends StatelessWidget {
                       'إجمالي الفواتير',
                       controller.statementTotalInvoices.value,
                       AppPalette.expense,
+                      customer.currency,
                     ),
                     const Divider(height: 16),
                     _buildStatementRow(
                       'إجمالي السداد',
                       controller.statementTotalPayments.value,
                       AppPalette.income,
+                      customer.currency,
                     ),
                     const Divider(height: 16),
                     _buildStatementRow(
                       'إجمالي المرتجعات',
                       controller.statementTotalReturns.value,
                       AppPalette.warning,
+                      customer.currency,
                     ),
                     const Divider(height: 16),
                     _buildStatementRow(
                       'الرصيد الحالي',
                       controller.statementBalance.value,
                       AppPalette.expense,
+                      customer.currency,
                       isBold: true,
                     ),
                   ],
@@ -675,7 +679,7 @@ class DebtsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildStatementRow(String label, double value, Color color, {bool isBold = false}) {
+  Widget _buildStatementRow(String label, double value, Color color, String currency, {bool isBold = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -687,7 +691,7 @@ class DebtsPage extends StatelessWidget {
           ),
         ),
         Text(
-          _formatCurrency(value),
+          _formatCurrency(value, currency),
           style: GoogleFonts.cairo(
             fontSize: isBold ? 16 : 14,
             fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
@@ -740,7 +744,7 @@ class DebtsPage extends StatelessWidget {
             ),
           ),
           Text(
-            '${transaction.increasesDebt ? '+' : '-'} ${_formatCurrency(transaction.amount)}',
+            '${transaction.increasesDebt ? '+' : '-'} ${_formatCurrency(transaction.amount, controller.selectedCustomer.value?.currency ?? 'ر.س')}',
             style: GoogleFonts.cairo(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -752,8 +756,8 @@ class DebtsPage extends StatelessWidget {
     );
   }
 
-  String _formatCurrency(double value) {
-    return '${value.toStringAsFixed(2)} ر.س';
+  String _formatCurrency(double value, [String currency = 'ر.س']) {
+    return '${value.toStringAsFixed(2)} $currency';
   }
 
   String _formatDate(DateTime date) {
@@ -800,6 +804,7 @@ class DebtsPage extends StatelessWidget {
                 AppCurrencyField(
                   controller: amountController,
                   hintText: 'مبلغ السداد',
+                  currencySymbol: customer.currency,
                 ),
                 const SizedBox(height: 12),
                 // Payment Method

@@ -25,6 +25,7 @@ class SettingsController extends GetxController {
   // Default Currency Settings
   RxString defaultCurrency = 'ر.س'.obs;
   RxList<AppCurrency> availableCurrencies = <AppCurrency>[].obs;
+  RxList<AppCurrency> selectedCurrencies = <AppCurrency>[].obs;
 
   // Printer Settings
   RxString selectedPrinterType = 'thermal'.obs;
@@ -43,6 +44,7 @@ class SettingsController extends GetxController {
   RxBool isLoading = false.obs;
   RxBool isSaving = false.obs;
   RxList<BackupInfo> backups = <BackupInfo>[].obs;
+  RxInt currentTabIndex = 0.obs;
 
   final BackupService _backupService = BackupService();
 
@@ -75,6 +77,8 @@ class SettingsController extends GetxController {
 
   void _loadAvailableCurrencies() {
     availableCurrencies.value = AppCurrency.available;
+    // Default selected currencies (most common)
+    selectedCurrencies.value = AppCurrency.available.take(4).toList();
   }
 
   Future<void> _loadBackupInfo() async {
@@ -141,15 +145,36 @@ class SettingsController extends GetxController {
 
   /// Add custom currency
   Future<void> addCustomCurrency() async {
-    final controller = TextEditingController();
+    final nameController = TextEditingController();
+    final symbolController = TextEditingController();
+    final codeController = TextEditingController();
+
     final result = await Get.dialog<bool>(
       AlertDialog(
         title: Text('إضافة عملة جديدة', style: GoogleFonts.cairo()),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            hintText: 'رمز العملة (مثال: €)',
-            border: const OutlineInputBorder(),
+        content: SizedBox(
+          width: 400,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AppTextField(
+                controller: nameController,
+                hintText: 'اسم العملة بالعربية',
+                prefixIconData: Icons.text_fields_rounded,
+              ),
+              const SizedBox(height: 12),
+              AppTextField(
+                controller: symbolController,
+                hintText: 'رمز العملة (مثال: $)',
+                prefixIconData: Icons.attach_money_rounded,
+              ),
+              const SizedBox(height: 12),
+              AppTextField(
+                controller: codeController,
+                hintText: 'رمز ISO (مثال: USD)',
+                prefixIconData: Icons.code_rounded,
+              ),
+            ],
           ),
         ),
         actions: [
@@ -158,18 +183,29 @@ class SettingsController extends GetxController {
             child: Text('إلغاء', style: GoogleFonts.cairo()),
           ),
           ElevatedButton(
-            onPressed: () => Get.back(result: true),
+            onPressed: () {
+              if (nameController.text.isNotEmpty && 
+                  symbolController.text.isNotEmpty) {
+                Get.back(result: true);
+              }
+            },
             child: Text('إضافة', style: GoogleFonts.cairo()),
           ),
         ],
       ),
     );
 
-    if (result == true && controller.text.isNotEmpty) {
-      // Add to available currencies
+    if (result == true && nameController.text.isNotEmpty && symbolController.text.isNotEmpty) {
+      final newCurrency = AppCurrency(
+        code: codeController.text.toUpperCase(),
+        symbol: symbolController.text,
+        nameAr: nameController.text,
+        nameEn: nameController.text,
+      );
+      availableCurrencies.add(newCurrency);
       Get.snackbar(
         'تم',
-        'تمت إضافة العملة',
+        'تمت إضافة العملة "${nameController.text}"',
         backgroundColor: AppPalette.incomeContainer,
         colorText: AppPalette.income,
       );
@@ -291,7 +327,7 @@ class SettingsController extends GetxController {
   }
 }
 
-/// Settings Page
+/// Settings Page - Modern Material 3 Design
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
@@ -329,36 +365,73 @@ class SettingsPage extends StatelessWidget {
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppPalette.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppPalette.outline.withValues(alpha: 0.5)),
+        gradient: LinearGradient(
+          colors: [AppPalette.primary, AppPalette.primary.withValues(alpha: 0.8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppPalette.primary.withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
-              color: AppPalette.primaryContainer,
-              borderRadius: BorderRadius.circular(12),
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(Icons.settings_rounded, color: AppPalette.primary),
+            child: const Icon(Icons.settings_rounded, color: Colors.white, size: 28),
           ),
           const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'الإعدادات',
-                style: GoogleFonts.cairo(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              Text(
-                'إدارة إعدادات المتجر والنظام',
-                style: GoogleFonts.cairo(fontSize: 13, color: AppPalette.textSecondary),
-              ),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'الإعدادات',
+                  style: GoogleFonts.cairo(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  'إدارة إعدادات المتجر والنظام',
+                  style: GoogleFonts.cairo(
+                    fontSize: 14,
+                    color: Colors.white.withValues(alpha: 0.9),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.info_outline_rounded, color: Colors.white, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  'الإصدار 1.0.0',
+                  style: GoogleFonts.cairo(color: Colors.white, fontSize: 12),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -372,14 +445,29 @@ class SettingsPage extends StatelessWidget {
         color: AppPalette.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppPalette.outline.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.store_rounded, color: AppPalette.primary),
-              const SizedBox(width: 8),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppPalette.primaryContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.store_rounded, color: AppPalette.primary, size: 20),
+              ),
+              const SizedBox(width: 12),
               Text(
                 'بيانات المتجر',
                 style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.w600),
@@ -387,84 +475,52 @@ class SettingsPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
+          const Divider(),
+          const SizedBox(height: 20),
 
           // Store Name
+          _buildFieldLabel('اسم المتجر *'),
+          const SizedBox(height: 8),
           AppTextField(
-            hintText: 'اسم المتجر *',
+            hintText: 'اسم المتجر',
             prefixIconData: Icons.store_rounded,
+            initialValue: controller.storeName.value,
             onChanged: (value) => controller.storeName.value = value,
           ),
-          Obx(() => Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              controller.storeName.value.isNotEmpty
-                  ? controller.storeName.value
-                  : 'الاسم الحالي',
-              style: GoogleFonts.cairo(fontSize: 11, color: AppPalette.textHint),
-            ),
-          )),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
 
           // Branch
+          _buildFieldLabel('اسم الفرع'),
+          const SizedBox(height: 8),
           AppTextField(
-            hintText: 'اسم الفرع',
+            hintText: 'اسم الفرع (اختياري)',
             prefixIconData: Icons.storefront_rounded,
+            initialValue: controller.storeBranch.value,
             onChanged: (value) => controller.storeBranch.value = value,
           ),
-          Obx(() => controller.storeBranch.value.isNotEmpty
-              ? Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    'الحالي: ${controller.storeBranch.value}',
-                    style: GoogleFonts.cairo(fontSize: 11, color: AppPalette.textHint),
-                  ),
-                )
-              : const SizedBox()),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
 
           // Phone
+          _buildFieldLabel('رقم الهاتف'),
+          const SizedBox(height: 8),
           AppTextField(
             hintText: 'رقم الهاتف',
             prefixIconData: Icons.phone_rounded,
             keyboardType: TextInputType.phone,
+            initialValue: controller.storePhone.value,
             onChanged: (value) => controller.storePhone.value = value,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
 
           // Address
+          _buildFieldLabel('العنوان'),
+          const SizedBox(height: 8),
           AppTextField(
             hintText: 'العنوان',
             prefixIconData: Icons.location_on_rounded,
+            initialValue: controller.storeAddress.value,
             onChanged: (value) => controller.storeAddress.value = value,
           ),
-          const SizedBox(height: 12),
-
-          // Default Currency
-          Text(
-            'العملة الافتراضية',
-            style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w500),
-          ),
-          const SizedBox(height: 8),
-          Obx(() => Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: AppCurrency.available.map((currency) {
-              final isSelected = controller.storeCurrency.value == currency.symbol ||
-                  controller.storeCurrency.value == currency.code;
-              return ChoiceChip(
-                label: Text('${currency.symbol} ${currency.nameAr}'),
-                selected: isSelected,
-                onSelected: (_) {
-                  controller.storeCurrency.value = currency.symbol;
-                },
-                selectedColor: AppPalette.primaryContainer,
-                labelStyle: GoogleFonts.cairo(
-                  fontSize: 12,
-                  color: isSelected ? AppPalette.primary : AppPalette.textSecondary,
-                ),
-              );
-            }).toList(),
-          )),
           const SizedBox(height: 20),
 
           // Save Button
@@ -480,6 +536,17 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
+  Widget _buildFieldLabel(String label) {
+    return Text(
+      label,
+      style: GoogleFonts.cairo(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: AppPalette.textSecondary,
+      ),
+    );
+  }
+
   Widget _buildCurrencySection(SettingsController controller) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -487,6 +554,13 @@ class SettingsPage extends StatelessWidget {
         color: AppPalette.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppPalette.outline.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -496,10 +570,18 @@ class SettingsPage extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.attach_money_rounded, color: AppPalette.primary),
-                  const SizedBox(width: 8),
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppPalette.primaryContainer,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.attach_money_rounded, color: AppPalette.primary, size: 20),
+                  ),
+                  const SizedBox(width: 12),
                   Text(
-                    'العملات',
+                    'إدارة العملات',
                     style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                 ],
@@ -508,12 +590,90 @@ class SettingsPage extends StatelessWidget {
                 onPressed: controller.addCustomCurrency,
                 icon: const Icon(Icons.add_rounded),
                 label: Text('إضافة عملة', style: GoogleFonts.cairo()),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppPalette.primary,
+                ),
               ),
             ],
           ),
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 16),
+
+          // Default Currency
+          _buildFieldLabel('العملة الافتراضية للمتجر'),
           const SizedBox(height: 12),
+          Obx(() => Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: controller.availableCurrencies.map((currency) {
+              final isSelected = controller.storeCurrency.value == currency.symbol;
+              return InkWell(
+                onTap: () => controller.storeCurrency.value = currency.symbol,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppPalette.primaryContainer : AppPalette.background,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected ? AppPalette.primary : AppPalette.outline.withValues(alpha: 0.5),
+                      width: isSelected ? 2 : 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: isSelected ? AppPalette.primary : AppPalette.textSecondary,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Center(
+                          child: Text(
+                            currency.symbol,
+                            style: GoogleFonts.cairo(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            currency.nameAr,
+                            style: GoogleFonts.cairo(
+                              fontSize: 13,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                              color: isSelected ? AppPalette.primary : AppPalette.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            currency.code,
+                            style: GoogleFonts.cairo(
+                              fontSize: 10,
+                              color: AppPalette.textHint,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          )),
+          const SizedBox(height: 20),
+
+          // Info Card
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppPalette.infoContainer,
               borderRadius: BorderRadius.circular(12),
@@ -521,10 +681,10 @@ class SettingsPage extends StatelessWidget {
             child: Row(
               children: [
                 Icon(Icons.info_outline_rounded, color: AppPalette.info, size: 20),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'يمكنك تعيين عملة مفضلة لكل عميل على حدة عند إضافته',
+                    'يمكنك تعيين عملة مفضلة لكل عميل ومورد على حدة عند إضافته. العملة الافتراضية تُستخدم للعمليات الجديدة.',
                     style: GoogleFonts.cairo(fontSize: 12, color: AppPalette.info),
                   ),
                 ),
@@ -532,11 +692,13 @@ class SettingsPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
+
+          // Available Currencies List
           Text(
-            'العملات المتاحة',
+            'العملات المتاحة في النظام',
             style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w500),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Obx(() => Column(
             children: controller.availableCurrencies.map((currency) {
               return Container(
@@ -549,8 +711,8 @@ class SettingsPage extends StatelessWidget {
                 child: Row(
                   children: [
                     Container(
-                      width: 40,
-                      height: 40,
+                      width: 44,
+                      height: 44,
                       decoration: BoxDecoration(
                         color: AppPalette.primaryContainer,
                         borderRadius: BorderRadius.circular(10),
@@ -585,11 +747,19 @@ class SettingsPage extends StatelessWidget {
                         ],
                       ),
                     ),
-                    Text(
-                      currency.code,
-                      style: GoogleFonts.cairo(
-                        fontSize: 12,
-                        color: AppPalette.textSecondary,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppPalette.surface,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppPalette.outline.withValues(alpha: 0.5)),
+                      ),
+                      child: Text(
+                        currency.code,
+                        style: GoogleFonts.cairo(
+                          fontSize: 12,
+                          color: AppPalette.textSecondary,
+                        ),
                       ),
                     ),
                   ],
@@ -609,14 +779,29 @@ class SettingsPage extends StatelessWidget {
         color: AppPalette.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppPalette.outline.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.print_rounded, color: AppPalette.primary),
-              const SizedBox(width: 8),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppPalette.primaryContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.print_rounded, color: AppPalette.primary, size: 20),
+              ),
+              const SizedBox(width: 12),
               Text(
                 'إعدادات الطباعة',
                 style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.w600),
@@ -624,10 +809,12 @@ class SettingsPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
+          const Divider(),
+          const SizedBox(height: 20),
 
           // Printer Type
-          Text('نوع الطابعة', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 8),
+          _buildFieldLabel('نوع الطابعة'),
+          const SizedBox(height: 12),
           Obx(() => Row(
             children: [
               Expanded(
@@ -649,11 +836,11 @@ class SettingsPage extends StatelessWidget {
               ),
             ],
           )),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
           // Paper Size
-          Text('حجم الورق', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 8),
+          _buildFieldLabel('حجم الورق'),
+          const SizedBox(height: 12),
           Obx(() => Row(
             children: [
               Expanded(
@@ -675,55 +862,63 @@ class SettingsPage extends StatelessWidget {
               ),
             ],
           )),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
-          // Auto Print
+          // Toggle Options
           Obx(() => _buildToggleOption(
             'طباعة تلقائية بعد البيع',
             controller.autoPrint.value,
             (value) => controller.autoPrint.value = value,
           )),
           const SizedBox(height: 12),
-
-          // Print Logo
           Obx(() => _buildToggleOption(
             'طباعة الشعار في الفاتورة',
             controller.printLogo.value,
             (value) => controller.printLogo.value = value,
           )),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
           // Print Copies
-          Row(
-            children: [
-              Text('عدد نسخ الطباعة:', style: GoogleFonts.cairo(fontSize: 14)),
-              const SizedBox(width: 16),
-              Obx(() => Row(
-                children: [
-                  IconButton(
-                    onPressed: controller.printCopies.value > 1
-                        ? () => controller.printCopies.value--
-                        : null,
-                    icon: const Icon(Icons.remove_circle_outline),
-                  ),
-                  Container(
-                    width: 40,
-                    alignment: Alignment.center,
-                    child: Text(
-                      '${controller.printCopies.value}',
-                      style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold),
+          _buildFieldLabel('عدد نسخ الطباعة'),
+          const SizedBox(height: 12),
+          Obx(() => Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppPalette.background,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  onPressed: controller.printCopies.value > 1
+                      ? () => controller.printCopies.value--
+                      : null,
+                  icon: const Icon(Icons.remove_circle_outline),
+                  color: AppPalette.primary,
+                ),
+                Container(
+                  width: 60,
+                  alignment: Alignment.center,
+                  child: Text(
+                    '${controller.printCopies.value}',
+                    style: GoogleFonts.cairo(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppPalette.primary,
                     ),
                   ),
-                  IconButton(
-                    onPressed: controller.printCopies.value < 5
-                        ? () => controller.printCopies.value++
-                        : null,
-                    icon: const Icon(Icons.add_circle_outline),
-                  ),
-                ],
-              )),
-            ],
-          ),
+                ),
+                IconButton(
+                  onPressed: controller.printCopies.value < 5
+                      ? () => controller.printCopies.value++
+                      : null,
+                  icon: const Icon(Icons.add_circle_outline),
+                  color: AppPalette.primary,
+                ),
+              ],
+            ),
+          )),
         ],
       ),
     );
@@ -736,20 +931,37 @@ class SettingsPage extends StatelessWidget {
         color: AppPalette.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppPalette.outline.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.backup_rounded, color: AppPalette.primary),
-              const SizedBox(width: 8),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppPalette.primaryContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.backup_rounded, color: AppPalette.primary, size: 20),
+              ),
+              const SizedBox(width: 12),
               Text(
                 'النسخ الاحتياطي',
                 style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.w600),
               ),
             ],
           ),
+          const SizedBox(height: 20),
+          const Divider(),
           const SizedBox(height: 20),
 
           // Backup Stats
@@ -786,13 +998,13 @@ class SettingsPage extends StatelessWidget {
 
           // Create Backup Button
           Obx(() => AppPrimaryButton(
-            text: 'إنشاء نسخة احتياطية',
+            text: 'إنشاء نسخة احتياطية الآن',
             icon: Icons.add_circle_rounded,
             isLoading: controller.isSaving.value,
             isFullWidth: true,
             onPressed: controller.createBackup,
           )),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
           // Backup List
           Text(
@@ -809,9 +1021,19 @@ class SettingsPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child: Text(
-                    'لا توجد نسخ احتياطية',
-                    style: GoogleFonts.cairo(color: AppPalette.textSecondary),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.cloud_off_rounded,
+                        size: 48,
+                        color: AppPalette.textHint.withValues(alpha: 0.5),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'لا توجد نسخ احتياطية',
+                        style: GoogleFonts.cairo(color: AppPalette.textSecondary),
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -833,12 +1055,13 @@ class SettingsPage extends StatelessWidget {
       onTap: () => onChanged(value),
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           color: isSelected ? AppPalette.primaryContainer : AppPalette.background,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? AppPalette.primary : AppPalette.outline.withValues(alpha: 0.5),
+            width: isSelected ? 2 : 1,
           ),
         ),
         child: Center(
@@ -857,7 +1080,7 @@ class SettingsPage extends StatelessWidget {
 
   Widget _buildToggleOption(String label, bool value, Function(bool) onChanged) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: AppPalette.background,
         borderRadius: BorderRadius.circular(12),
@@ -878,16 +1101,17 @@ class SettingsPage extends StatelessWidget {
 
   Widget _buildBackupStat(String label, String value, IconData icon) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppPalette.background,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         children: [
-          Icon(icon, color: AppPalette.primary, size: 20),
+          Icon(icon, color: AppPalette.primary, size: 24),
           const SizedBox(height: 8),
           Text(value, style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
           Text(label, style: GoogleFonts.cairo(fontSize: 11, color: AppPalette.textSecondary)),
         ],
       ),
@@ -905,8 +1129,8 @@ class SettingsPage extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
               color: AppPalette.primaryContainer,
               borderRadius: BorderRadius.circular(10),

@@ -16,6 +16,7 @@ class SuppliersDatabase {
       email TEXT DEFAULT '',
       description TEXT DEFAULT '',
       balance REAL DEFAULT 0,
+      currency TEXT DEFAULT 'ر.س',
       createdAt TEXT NOT NULL,
       updatedAt TEXT
     )
@@ -28,12 +29,44 @@ class SuppliersDatabase {
       supplierId INTEGER NOT NULL,
       type TEXT NOT NULL,
       amount REAL NOT NULL,
+      currency TEXT DEFAULT 'ر.س',
       description TEXT DEFAULT '',
       invoiceId INTEGER,
       createdAt TEXT NOT NULL,
       FOREIGN KEY (supplierId) REFERENCES suppliers (id) ON DELETE CASCADE
     )
   ''';
+
+  /// Migration: Add currency column to existing tables
+  static Future<void> migrateAddCurrencyColumn(Database db) async {
+    // Check if currency column exists in suppliers table
+    final supplierColumns = await db.rawQuery(
+      "PRAGMA table_info(suppliers)"
+    );
+    final hasSupplierCurrency = supplierColumns.any(
+      (col) => col['name'] == 'currency'
+    );
+    
+    if (!hasSupplierCurrency) {
+      await db.execute(
+        "ALTER TABLE suppliers ADD COLUMN currency TEXT DEFAULT 'ر.س'"
+      );
+    }
+
+    // Check if currency column exists in supplier_transactions table
+    final transactionColumns = await db.rawQuery(
+      "PRAGMA table_info(supplier_transactions)"
+    );
+    final hasTransactionCurrency = transactionColumns.any(
+      (col) => col['name'] == 'currency'
+    );
+    
+    if (!hasTransactionCurrency) {
+      await db.execute(
+        "ALTER TABLE supplier_transactions ADD COLUMN currency TEXT DEFAULT 'ر.س'"
+      );
+    }
+  }
 
   /// Insert a new supplier
   static Future<int> insertSupplier(Supplier supplier) async {

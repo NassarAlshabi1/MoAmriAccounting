@@ -5,6 +5,7 @@ import 'package:moamri_accounting/shared/theme/app_palette.dart';
 import 'package:moamri_accounting/shared/widgets/buttons.dart';
 import 'package:moamri_accounting/shared/widgets/form_fields.dart';
 import 'package:moamri_accounting/database/entities/supplier.dart';
+import 'package:moamri_accounting/database/entities/customer.dart' show AppCurrency;
 import 'suppliers_controller.dart';
 
 /// Suppliers Page
@@ -695,50 +696,84 @@ class SuppliersPage extends StatelessWidget {
     final addressController = TextEditingController();
     final emailController = TextEditingController();
     final descriptionController = TextEditingController();
+    String selectedCurrency = 'ر.س';
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('إضافة مورد جديد', style: GoogleFonts.cairo()),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AppTextField(
-                controller: nameController,
-                hintText: 'اسم المورد *',
-                prefixIconData: Icons.person_rounded,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text('إضافة مورد جديد', style: GoogleFonts.cairo()),
+          content: SingleChildScrollView(
+            child: SizedBox(
+              width: 400,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppTextField(
+                    controller: nameController,
+                    hintText: 'اسم المورد *',
+                    prefixIconData: Icons.person_rounded,
+                  ),
+                  const SizedBox(height: 12),
+                  AppTextField(
+                    controller: phoneController,
+                    hintText: 'رقم الهاتف',
+                    prefixIconData: Icons.phone_rounded,
+                    keyboardType: TextInputType.phone,
+                  ),
+                  const SizedBox(height: 12),
+                  AppTextField(
+                    controller: addressController,
+                    hintText: 'العنوان',
+                    prefixIconData: Icons.location_on_rounded,
+                  ),
+                  const SizedBox(height: 12),
+                  AppTextField(
+                    controller: emailController,
+                    hintText: 'البريد الإلكتروني',
+                    prefixIconData: Icons.email_rounded,
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 12),
+                  // Currency Selection
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'العملة المفضلة للتعامل',
+                        style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: AppCurrency.available.take(4).map((currency) {
+                          final isSelected = selectedCurrency == currency.symbol;
+                          return ChoiceChip(
+                            label: Text(currency.symbol),
+                            selected: isSelected,
+                            onSelected: (_) => setState(() => selectedCurrency = currency.symbol),
+                            selectedColor: AppPalette.primaryContainer,
+                            labelStyle: GoogleFonts.cairo(
+                              fontSize: 12,
+                              color: isSelected ? AppPalette.primary : AppPalette.textSecondary,
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  AppTextField(
+                    controller: descriptionController,
+                    hintText: 'ملاحظات',
+                    prefixIconData: Icons.description_rounded,
+                    maxLines: 2,
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              AppTextField(
-                controller: phoneController,
-                hintText: 'رقم الهاتف',
-                prefixIconData: Icons.phone_rounded,
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 12),
-              AppTextField(
-                controller: addressController,
-                hintText: 'العنوان',
-                prefixIconData: Icons.location_on_rounded,
-              ),
-              const SizedBox(height: 12),
-              AppTextField(
-                controller: emailController,
-                hintText: 'البريد الإلكتروني',
-                prefixIconData: Icons.email_rounded,
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 12),
-              AppTextField(
-                controller: descriptionController,
-                hintText: 'ملاحظات',
-                prefixIconData: Icons.description_rounded,
-                maxLines: 2,
-              ),
-            ],
+            ),
           ),
-        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -764,6 +799,7 @@ class SuppliersPage extends StatelessWidget {
                       address: addressController.text,
                       email: emailController.text,
                       description: descriptionController.text,
+                      currency: selectedCurrency,
                     );
                     
                     final result = await controller.addSupplier(supplier);
@@ -808,50 +844,84 @@ class SuppliersPage extends StatelessWidget {
     final addressController = TextEditingController(text: supplier.address);
     final emailController = TextEditingController(text: supplier.email);
     final descriptionController = TextEditingController(text: supplier.description);
+    String selectedCurrency = supplier.currency;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('تعديل المورد', style: GoogleFonts.cairo()),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AppTextField(
-                controller: nameController,
-                hintText: 'اسم المورد *',
-                prefixIconData: Icons.person_rounded,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text('تعديل المورد', style: GoogleFonts.cairo()),
+          content: SingleChildScrollView(
+            child: SizedBox(
+              width: 400,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppTextField(
+                    controller: nameController,
+                    hintText: 'اسم المورد *',
+                    prefixIconData: Icons.person_rounded,
+                  ),
+                  const SizedBox(height: 12),
+                  AppTextField(
+                    controller: phoneController,
+                    hintText: 'رقم الهاتف',
+                    prefixIconData: Icons.phone_rounded,
+                    keyboardType: TextInputType.phone,
+                  ),
+                  const SizedBox(height: 12),
+                  AppTextField(
+                    controller: addressController,
+                    hintText: 'العنوان',
+                    prefixIconData: Icons.location_on_rounded,
+                  ),
+                  const SizedBox(height: 12),
+                  AppTextField(
+                    controller: emailController,
+                    hintText: 'البريد الإلكتروني',
+                    prefixIconData: Icons.email_rounded,
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 12),
+                  // Currency Selection
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'العملة المفضلة للتعامل',
+                        style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: AppCurrency.available.take(4).map((currency) {
+                          final isSelected = selectedCurrency == currency.symbol;
+                          return ChoiceChip(
+                            label: Text(currency.symbol),
+                            selected: isSelected,
+                            onSelected: (_) => setState(() => selectedCurrency = currency.symbol),
+                            selectedColor: AppPalette.primaryContainer,
+                            labelStyle: GoogleFonts.cairo(
+                              fontSize: 12,
+                              color: isSelected ? AppPalette.primary : AppPalette.textSecondary,
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  AppTextField(
+                    controller: descriptionController,
+                    hintText: 'ملاحظات',
+                    prefixIconData: Icons.description_rounded,
+                    maxLines: 2,
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              AppTextField(
-                controller: phoneController,
-                hintText: 'رقم الهاتف',
-                prefixIconData: Icons.phone_rounded,
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 12),
-              AppTextField(
-                controller: addressController,
-                hintText: 'العنوان',
-                prefixIconData: Icons.location_on_rounded,
-              ),
-              const SizedBox(height: 12),
-              AppTextField(
-                controller: emailController,
-                hintText: 'البريد الإلكتروني',
-                prefixIconData: Icons.email_rounded,
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 12),
-              AppTextField(
-                controller: descriptionController,
-                hintText: 'ملاحظات',
-                prefixIconData: Icons.description_rounded,
-                maxLines: 2,
-              ),
-            ],
+            ),
           ),
-        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -875,6 +945,7 @@ class SuppliersPage extends StatelessWidget {
                 address: addressController.text,
                 email: emailController.text,
                 description: descriptionController.text,
+                currency: selectedCurrency,
               );
               
               final result = await controller.updateSupplier(updatedSupplier);
@@ -930,6 +1001,7 @@ class SuppliersPage extends StatelessWidget {
             AppCurrencyField(
               controller: amountController,
               hintText: 'مبلغ السداد',
+              currencySymbol: supplier.currency,
             ),
             const SizedBox(height: 12),
             AppTextField(
@@ -961,6 +1033,7 @@ class SuppliersPage extends StatelessWidget {
                 supplierId: supplier.id!,
                 type: 'payment',
                 amount: amount,
+                currency: supplier.currency,
                 description: descriptionController.text,
               );
               
