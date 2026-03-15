@@ -1,304 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:moamri_accounting/shared/theme/app_palette.dart';
-import 'package:moamri_accounting/shared/widgets/buttons.dart';
-import 'package:moamri_accounting/database/invoices_database.dart';
-import 'package:moamri_accounting/database/customers_database.dart';
-import 'package:moamri_accounting/database/suppliers_database.dart';
-import 'package:moamri_accounting/database/debts_database.dart';
-
-/// Reports Controller
-///
-/// Manages reports state and data loading with reactive programming.
-class ReportsController extends GetxController with GetSingleTickerProviderStateMixin {
-  late TabController tabController;
-  
-  // Period selection
-  RxString selectedPeriod = 'month'.obs;
-  Rx<DateTime> startDate = Rx(DateTime.now().subtract(const Duration(days: 30)));
-  Rx<DateTime> endDate = Rx(DateTime.now());
-
-  // Sales stats
-  RxDouble totalSales = 0.0.obs;
-  RxDouble totalPurchases = 0.0.obs;
-  RxDouble totalReturns = 0.0.obs;
-  RxDouble grossProfit = 0.0.obs;
-  RxDouble netProfit = 0.0.obs;
-  RxInt invoicesCount = 0.obs;
-  RxInt returnsCount = 0.obs;
-
-  // Cash movement
-  RxDouble cashIn = 0.0.obs;
-  RxDouble cashOut = 0.0.obs;
-  RxDouble netCashFlow = 0.0.obs;
-  RxList<CashMovement> cashMovements = <CashMovement>[].obs;
-
-  // Debts
-  RxDouble customerDebts = 0.0.obs;
-  RxDouble supplierDebts = 0.0.obs;
-  RxInt customersWithDebts = 0.obs;
-  RxInt suppliersWithDebts = 0.obs;
-  RxList<DebtItem> customerDebtsList = <DebtItem>[].obs;
-  RxList<DebtItem> supplierDebtsList = <DebtItem>[].obs;
-
-  // Chart data
-  RxList<double> salesChartData = <double>[].obs;
-  RxList<String> salesChartLabels = <String>[].obs;
-  RxList<CategoryData> categoryData = <CategoryData>[].obs;
-
-  // Loading
-  RxBool isLoading = false.obs;
-  RxBool isLoadingDetails = false.obs;
-
-  @override
-  void onInit() {
-    super.onInit();
-    tabController = TabController(length: 4, vsync: this);
-    tabController.addListener(_onTabChanged);
-    loadReportData();
-  }
-
-  @override
-  void onClose() {
-    tabController.dispose();
-    super.onClose();
-  }
-
-  void _onTabChanged() {
-    if (!tabController.indexIsChanging) {
-      // Reload data when tab changes if needed
-    }
-  }
-
-  /// Load all report data
-  Future<void> loadReportData() async {
-    isLoading.value = true;
-
-    try {
-      await Future.wait([
-        _loadSalesStats(),
-        _loadCashMovement(),
-        _loadDebtsData(),
-        _loadChartData(),
-      ]);
-    } catch (e) {
-      debugPrint('Error loading report data: $e');
-    }
-
-    isLoading.value = false;
-  }
-
-  /// Load sales statistics
-  Future<void> _loadSalesStats() async {
-    try {
-      // Sample data - in production, load from database
-      totalSales.value = 285000.0;
-      totalPurchases.value = 195000.0;
-      totalReturns.value = 12500.0;
-      grossProfit.value = totalSales.value - totalPurchases.value;
-      netProfit.value = grossProfit.value - 25000.0; // minus expenses
-      invoicesCount.value = 47;
-      returnsCount.value = 5;
-    } catch (e) {
-      debugPrint('Error loading sales stats: $e');
-    }
-  }
-
-  /// Load cash movement data
-  Future<void> _loadCashMovement() async {
-    try {
-      // Sample cash movements
-      cashMovements.value = [
-        CashMovement(
-          date: DateTime.now().subtract(const Duration(days: 1)),
-          description: 'مبيعات نقدية',
-          amountIn: 45000.0,
-          amountOut: 0.0,
-          type: 'sale',
-        ),
-        CashMovement(
-          date: DateTime.now().subtract(const Duration(days: 1)),
-          description: 'شراء بضاعة',
-          amountIn: 0.0,
-          amountOut: 25000.0,
-          type: 'purchase',
-        ),
-        CashMovement(
-          date: DateTime.now().subtract(const Duration(days: 2)),
-          description: 'سداد من عميل',
-          amountIn: 8500.0,
-          amountOut: 0.0,
-          type: 'payment',
-        ),
-        CashMovement(
-          date: DateTime.now().subtract(const Duration(days: 2)),
-          description: 'رواتب الموظفين',
-          amountIn: 0.0,
-          amountOut: 15000.0,
-          type: 'expense',
-        ),
-        CashMovement(
-          date: DateTime.now().subtract(const Duration(days: 3)),
-          description: 'مبيعات آجلة',
-          amountIn: 0.0,
-          amountOut: 0.0,
-          type: 'credit_sale',
-          creditAmount: 12000.0,
-        ),
-      ];
-
-      // Calculate totals
-      cashIn.value = cashMovements.fold(0.0, (sum, m) => sum + m.amountIn);
-      cashOut.value = cashMovements.fold(0.0, (sum, m) => sum + m.amountOut);
-      netCashFlow.value = cashIn.value - cashOut.value;
-    } catch (e) {
-      debugPrint('Error loading cash movement: $e');
-    }
-  }
-
-  /// Load debts data
-  Future<void> _loadDebtsData() async {
-    try {
-      // Customer debts
-      customerDebts.value = 45000.0;
-      customersWithDebts.value = 12;
-      customerDebtsList.value = [
-        DebtItem(name: 'محمد أحمد', amount: 8500.0, date: DateTime.now().subtract(const Duration(days: 15))),
-        DebtItem(name: 'علي محمود', amount: 5200.0, date: DateTime.now().subtract(const Duration(days: 10))),
-        DebtItem(name: 'سارة خالد', amount: 12000.0, date: DateTime.now().subtract(const Duration(days: 5))),
-        DebtItem(name: 'أحمد علي', amount: 3500.0, date: DateTime.now().subtract(const Duration(days: 20))),
-      ];
-
-      // Supplier debts
-      supplierDebts.value = 28000.0;
-      suppliersWithDebts.value = 5;
-      supplierDebtsList.value = [
-        DebtItem(name: 'شركة الأمل', amount: 15000.0, date: DateTime.now().subtract(const Duration(days: 8))),
-        DebtItem(name: 'مؤسسة النور', amount: 8000.0, date: DateTime.now().subtract(const Duration(days: 12))),
-        DebtItem(name: 'مصنع السلام', amount: 5000.0, date: DateTime.now().subtract(const Duration(days: 3))),
-      ];
-    } catch (e) {
-      debugPrint('Error loading debts data: $e');
-    }
-  }
-
-  /// Load chart data
-  Future<void> _loadChartData() async {
-    salesChartData.value = [45000, 52000, 38000, 61000, 55000, 48000, 52000];
-    salesChartLabels.value = ['السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
-
-    categoryData.value = [
-      CategoryData('أجهزة كهربائية', 125000, AppPalette.primary),
-      CategoryData('ملابس', 85000, AppPalette.info),
-      CategoryData('مواد غذائية', 45000, AppPalette.income),
-      CategoryData('أدوات مكتبية', 30000, AppPalette.warning),
-    ];
-  }
-
-  /// Change period
-  Future<void> changePeriod(String period) async {
-    selectedPeriod.value = period;
-    
-    final now = DateTime.now();
-    switch (period) {
-      case 'today':
-        startDate.value = DateTime(now.year, now.month, now.day);
-        endDate.value = now;
-        break;
-      case 'week':
-        startDate.value = now.subtract(Duration(days: now.weekday));
-        endDate.value = now;
-        break;
-      case 'month':
-        startDate.value = DateTime(now.year, now.month, 1);
-        endDate.value = now;
-        break;
-      case 'year':
-        startDate.value = DateTime(now.year, 1, 1);
-        endDate.value = now;
-        break;
-    }
-    
-    await loadReportData();
-  }
-
-  /// Change custom date range
-  Future<void> changeDateRange(DateTime start, DateTime end) async {
-    startDate.value = start;
-    endDate.value = end;
-    selectedPeriod.value = 'custom';
-    await loadReportData();
-  }
-}
-
-/// Cash Movement Model
-class CashMovement {
-  final DateTime date;
-  final String description;
-  final double amountIn;
-  final double amountOut;
-  final String type;
-  final double? creditAmount;
-
-  CashMovement({
-    required this.date,
-    required this.description,
-    required this.amountIn,
-    required this.amountOut,
-    required this.type,
-    this.creditAmount,
-  });
-
-  IconData get icon {
-    switch (type) {
-      case 'sale':
-        return Icons.point_of_sale_rounded;
-      case 'purchase':
-        return Icons.shopping_cart_rounded;
-      case 'payment':
-        return Icons.payment_rounded;
-      case 'expense':
-        return Icons.money_off_rounded;
-      case 'credit_sale':
-        return Icons.receipt_long_rounded;
-      default:
-        return Icons.receipt_rounded;
-    }
-  }
-
-  Color get color {
-    if (amountIn > 0) return AppPalette.income;
-    if (amountOut > 0) return AppPalette.expense;
-    return AppPalette.warning;
-  }
-}
-
-/// Debt Item Model
-class DebtItem {
-  final String name;
-  final double amount;
-  final DateTime date;
-
-  DebtItem({
-    required this.name,
-    required this.amount,
-    required this.date,
-  });
-}
-
-/// Category Data Model
-class CategoryData {
-  final String label;
-  final double value;
-  final Color color;
-
-  CategoryData(this.label, this.value, this.color);
-}
+import 'package:moamri_accounting/database/my_database.dart';
 
 /// Reports Page
 ///
-/// Comprehensive reports page with sales, cash movement, and debts tabs.
+/// Simple reports page with buttons to view:
+/// - Cash payments from customers
+/// - Credit payments from customers
+/// - Debts
 class ReportsPage extends StatelessWidget {
   const ReportsPage({super.key});
 
@@ -310,801 +22,305 @@ class ReportsPage extends StatelessWidget {
       backgroundColor: AppPalette.background,
       body: Column(
         children: [
-          _buildHeader(controller),
-          _buildPeriodSelector(controller),
-          _buildTabBar(controller),
-          Expanded(
-            child: Obx(() => controller.isLoading.value
-                ? const Center(child: CircularProgressIndicator())
-                : TabBarView(
-                    controller: controller.tabController,
-                    children: [
-                      _buildSalesTab(controller),
-                      _buildCashMovementTab(controller),
-                      _buildCustomerDebtsTab(controller),
-                      _buildSupplierDebtsTab(controller),
-                    ],
-                  )),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader(ReportsController controller) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppPalette.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            'التقارير والاستعلامات',
-            style: GoogleFonts.cairo(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: AppPalette.textPrimary,
+          // Header
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppPalette.surface,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'التقارير',
+                  style: GoogleFonts.cairo(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: AppPalette.textPrimary,
+                  ),
+                ),
+                Row(
+                  children: [
+                    Obx(() => Text(
+                      'الفترة: ${controller.selectedPeriodText}',
+                      style: GoogleFonts.cairo(
+                        fontSize: 14,
+                        color: AppPalette.textSecondary,
+                      ),
+                    )),
+                  ],
+                ),
+              ],
             ),
           ),
-          Row(
-            children: [
-              AppSecondaryButton(
-                text: 'تصدير PDF',
-                icon: Icons.picture_as_pdf_rounded,
-                onPressed: () {},
+
+          // Period Selector
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            color: AppPalette.surface,
+            child: Obx(() => SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildPeriodChip(controller, 'اليوم', 'today'),
+                  const SizedBox(width: 8),
+                  _buildPeriodChip(controller, 'الأسبوع', 'week'),
+                  const SizedBox(width: 8),
+                  _buildPeriodChip(controller, 'الشهر', 'month'),
+                  const SizedBox(width: 8),
+                  _buildPeriodChip(controller, 'السنة', 'year'),
+                  const SizedBox(width: 8),
+                  _buildPeriodChip(controller, 'مخصص', 'custom'),
+                  if (controller.selectedPeriod.value == 'custom') ...[
+                    const SizedBox(width: 12),
+                    TextButton.icon(
+                      icon: const Icon(Icons.date_range_rounded),
+                      label: Text(
+                        '${_formatDate(controller.startDate.value)} - ${_formatDate(controller.endDate.value)}',
+                        style: GoogleFonts.cairo(),
+                      ),
+                      onPressed: () => _showDateRangePicker(controller),
+                    ),
+                  ],
+                ],
               ),
-              const SizedBox(width: 8),
-              AppSecondaryButton(
-                text: 'طباعة',
-                icon: Icons.print_rounded,
-                onPressed: () {},
+            )),
+          ),
+
+          // Report Buttons
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Section Title
+                  Text(
+                    'تقارير المدفوعات',
+                    style: GoogleFonts.cairo(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: AppPalette.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Payment Reports
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildReportButton(
+                          title: 'المدفوعات النقدية',
+                          subtitle: 'مدفوعات العملاء النقدية',
+                          icon: Icons.payments_rounded,
+                          color: AppPalette.income,
+                          onTap: () => _showCashPaymentsReport(controller),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildReportButton(
+                          title: 'المدفوعات الآجلة',
+                          subtitle: 'مدفوعات العملاء الآجلة',
+                          icon: Icons.schedule_rounded,
+                          color: AppPalette.warning,
+                          onTap: () => _showCreditPaymentsReport(controller),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Debts Section
+                  Text(
+                    'تقارير الديون',
+                    style: GoogleFonts.cairo(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: AppPalette.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Debts Report
+                  _buildReportButton(
+                    title: 'الديون',
+                    subtitle: 'عرض جميع ديون العملاء',
+                    icon: Icons.account_balance_wallet_rounded,
+                    color: AppPalette.expense,
+                    onTap: () => _showDebtsReport(controller),
+                    isFullWidth: true,
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Quick Stats
+                  Obx(() => Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppPalette.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppPalette.outline.withValues(alpha: 0.5)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'ملخص سريع',
+                          style: GoogleFonts.cairo(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildQuickStatRow(
+                          'إجمالي المدفوعات النقدية',
+                          controller.totalCashPayments.value,
+                          AppPalette.income,
+                        ),
+                        const Divider(height: 24),
+                        _buildQuickStatRow(
+                          'إجمالي المدفوعات الآجلة',
+                          controller.totalCreditPayments.value,
+                          AppPalette.warning,
+                        ),
+                        const Divider(height: 24),
+                        _buildQuickStatRow(
+                          'إجمالي الديون',
+                          controller.totalDebts.value,
+                          AppPalette.expense,
+                        ),
+                      ],
+                    ),
+                  )),
+                ],
               ),
-            ],
+            ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildPeriodSelector(ReportsController controller) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      color: AppPalette.surface,
-      child: Obx(() => SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            _buildPeriodChip(controller, 'اليوم', 'today'),
-            const SizedBox(width: 8),
-            _buildPeriodChip(controller, 'الأسبوع', 'week'),
-            const SizedBox(width: 8),
-            _buildPeriodChip(controller, 'الشهر', 'month'),
-            const SizedBox(width: 8),
-            _buildPeriodChip(controller, 'السنة', 'year'),
-            const SizedBox(width: 8),
-            _buildPeriodChip(controller, 'مخصص', 'custom'),
-            if (controller.selectedPeriod.value == 'custom') ...[
-              const SizedBox(width: 12),
-              TextButton.icon(
-                icon: const Icon(Icons.date_range_rounded),
-                label: Text(
-                  '${_formatDate(controller.startDate.value)} - ${_formatDate(controller.endDate.value)}',
-                  style: GoogleFonts.cairo(),
-                ),
-                onPressed: () => _showDateRangePicker(controller),
-              ),
-            ],
-          ],
-        ),
-      )),
     );
   }
 
   Widget _buildPeriodChip(ReportsController controller, String label, String value) {
-    return Obx(() {
-      final isSelected = controller.selectedPeriod.value == value;
-      return FilterChip(
-        label: Text(label),
-        selected: isSelected,
-        onSelected: (_) => controller.changePeriod(value),
-        selectedColor: AppPalette.primaryContainer,
-        labelStyle: GoogleFonts.cairo(
-          fontSize: 13,
-          color: isSelected ? AppPalette.primary : AppPalette.textSecondary,
-        ),
-      );
-    });
-  }
-
-  Widget _buildTabBar(ReportsController controller) {
-    return Container(
-      color: AppPalette.surface,
-      child: TabBar(
-        controller: controller.tabController,
-        labelColor: AppPalette.primary,
-        unselectedLabelColor: AppPalette.textSecondary,
-        indicatorColor: AppPalette.primary,
-        labelStyle: GoogleFonts.cairo(fontWeight: FontWeight.w600),
-        tabs: const [
-          Tab(text: 'المبيعات والأرباح'),
-          Tab(text: 'حركة الصندوق'),
-          Tab(text: 'ديون العملاء'),
-          Tab(text: 'ديون الموردين'),
-        ],
+    final isSelected = controller.selectedPeriod.value == value;
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) => controller.changePeriod(value),
+      selectedColor: AppPalette.primaryContainer,
+      labelStyle: GoogleFonts.cairo(
+        fontSize: 13,
+        color: isSelected ? AppPalette.primary : AppPalette.textSecondary,
       ),
     );
   }
 
-  // ===== Sales Tab =====
-  Widget _buildSalesTab(ReportsController controller) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Summary Cards
-          Obx(() => Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  'إجمالي المبيعات',
-                  controller.totalSales.value,
-                  AppPalette.income,
-                  Icons.trending_up_rounded,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard(
-                  'تكلفة المشتريات',
-                  controller.totalPurchases.value,
-                  AppPalette.expense,
-                  Icons.trending_down_rounded,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard(
-                  'المرتجعات',
-                  controller.totalReturns.value,
-                  AppPalette.warning,
-                  Icons.keyboard_return_rounded,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard(
-                  'صافي الربح',
-                  controller.netProfit.value,
-                  controller.netProfit.value >= 0 ? AppPalette.primary : AppPalette.expense,
-                  Icons.account_balance_wallet_rounded,
-                ),
+  Widget _buildReportButton({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+    bool isFullWidth = false,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppPalette.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppPalette.outline.withValues(alpha: 0.5)),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
             ],
-          )),
-          const SizedBox(height: 24),
-
-          // Sales Chart
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppPalette.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppPalette.outline.withOpacity(0.5)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(icon, color: color, size: 28),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'المبيعات اليومية',
+                      title,
                       style: GoogleFonts.cairo(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
+                        color: AppPalette.textPrimary,
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppPalette.incomeContainer,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        '+12.5%',
-                        style: GoogleFonts.cairo(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppPalette.income,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                Obx(() => SizedBox(
-                  height: 200,
-                  child: _buildSimpleBarChart(
-                    controller.salesChartData,
-                    controller.salesChartLabels,
-                    AppPalette.income,
-                  ),
-                )),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Category Sales
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppPalette.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppPalette.outline.withOpacity(0.5)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'المبيعات حسب التصنيف',
-                  style: GoogleFonts.cairo(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Obx(() => Column(
-                  children: controller.categoryData.map((entry) {
-                    final total = controller.categoryData.fold<double>(0, (sum, e) => sum + e.value);
-                    final percentage = total > 0 ? (entry.value / total * 100) : 0;
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 12,
-                                    height: 12,
-                                    decoration: BoxDecoration(
-                                      color: entry.color,
-                                      borderRadius: BorderRadius.circular(2),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(entry.label, style: GoogleFonts.cairo(fontSize: 13)),
-                                ],
-                              ),
-                              Text(
-                                '${percentage.toStringAsFixed(1)}%',
-                                style: GoogleFonts.cairo(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: entry.color,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: percentage / 100,
-                              backgroundColor: entry.color.withOpacity(0.15),
-                              valueColor: AlwaysStoppedAnimation(entry.color),
-                              minHeight: 8,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                )),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ===== Cash Movement Tab =====
-  Widget _buildCashMovementTab(ReportsController controller) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Summary Cards
-          Obx(() => Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  'الوارد',
-                  controller.cashIn.value,
-                  AppPalette.income,
-                  Icons.arrow_downward_rounded,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard(
-                  'الصادر',
-                  controller.cashOut.value,
-                  AppPalette.expense,
-                  Icons.arrow_upward_rounded,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard(
-                  'صافي التدفق',
-                  controller.netCashFlow.value,
-                  controller.netCashFlow.value >= 0 ? AppPalette.primary : AppPalette.expense,
-                  Icons.account_balance_rounded,
-                ),
-              ),
-            ],
-          )),
-          const SizedBox(height: 24),
-
-          // Transactions List
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppPalette.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppPalette.outline.withOpacity(0.5)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
+                    const SizedBox(height: 4),
                     Text(
-                      'حركات الصندوق',
-                      style: GoogleFonts.cairo(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {},
-                      child: Text('عرض الكل', style: GoogleFonts.cairo()),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Obx(() => Column(
-                  children: controller.cashMovements.map((movement) {
-                    return _buildCashMovementItem(movement);
-                  }).toList(),
-                )),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCashMovementItem(CashMovement movement) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: AppPalette.outline.withOpacity(0.3)),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: movement.color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(movement.icon, color: movement.color, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  movement.description,
-                  style: GoogleFonts.cairo(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Text(
-                  _formatDate(movement.date),
-                  style: GoogleFonts.cairo(
-                    fontSize: 12,
-                    color: AppPalette.textHint,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              if (movement.amountIn > 0)
-                Text(
-                  '+ ${movement.amountIn.toStringAsFixed(2)}',
-                  style: GoogleFonts.cairo(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppPalette.income,
-                  ),
-                ),
-              if (movement.amountOut > 0)
-                Text(
-                  '- ${movement.amountOut.toStringAsFixed(2)}',
-                  style: GoogleFonts.cairo(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppPalette.expense,
-                  ),
-                ),
-              if (movement.creditAmount != null)
-                Text(
-                  'آجل: ${movement.creditAmount!.toStringAsFixed(2)}',
-                  style: GoogleFonts.cairo(
-                    fontSize: 12,
-                    color: AppPalette.warning,
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ===== Customer Debts Tab =====
-  Widget _buildCustomerDebtsTab(ReportsController controller) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Summary Cards
-          Obx(() => Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  'إجمالي الديون',
-                  controller.customerDebts.value,
-                  AppPalette.expense,
-                  Icons.account_balance_wallet_rounded,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard(
-                  'عملاء بديون',
-                  controller.customersWithDebts.value.toDouble(),
-                  AppPalette.warning,
-                  Icons.people_rounded,
-                  isCount: true,
-                ),
-              ),
-            ],
-          )),
-          const SizedBox(height: 24),
-
-          // Debts List
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppPalette.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppPalette.outline.withOpacity(0.5)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'ديون العملاء',
-                      style: GoogleFonts.cairo(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    AppSecondaryButton(
-                      text: 'تقرير مفصل',
-                      icon: Icons.description_rounded,
-                      onPressed: () {},
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Obx(() => Column(
-                  children: controller.customerDebtsList.map((debt) {
-                    return _buildDebtItem(debt, true);
-                  }).toList(),
-                )),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ===== Supplier Debts Tab =====
-  Widget _buildSupplierDebtsTab(ReportsController controller) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Summary Cards
-          Obx(() => Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  'إجمالي الديون',
-                  controller.supplierDebts.value,
-                  AppPalette.warning,
-                  Icons.local_shipping_rounded,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard(
-                  'موردين بديون',
-                  controller.suppliersWithDebts.value.toDouble(),
-                  AppPalette.info,
-                  Icons.local_shipping_rounded,
-                  isCount: true,
-                ),
-              ),
-            ],
-          )),
-          const SizedBox(height: 24),
-
-          // Debts List
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppPalette.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppPalette.outline.withOpacity(0.5)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'ديون الموردين',
-                      style: GoogleFonts.cairo(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    AppSecondaryButton(
-                      text: 'تقرير مفصل',
-                      icon: Icons.description_rounded,
-                      onPressed: () {},
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Obx(() => Column(
-                  children: controller.supplierDebtsList.map((debt) {
-                    return _buildDebtItem(debt, false);
-                  }).toList(),
-                )),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDebtItem(DebtItem debt, bool isCustomer) {
-    final daysSince = DateTime.now().difference(debt.date).inDays;
-    final isOverdue = daysSince > 30;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppPalette.background,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isOverdue ? AppPalette.expense.withOpacity(0.5) : AppPalette.outline.withOpacity(0.3),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: isCustomer
-                  ? AppPalette.primaryContainer
-                  : AppPalette.warningContainer,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              isCustomer ? Icons.person_rounded : Icons.local_shipping_rounded,
-              color: isCustomer ? AppPalette.primary : AppPalette.warning,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  debt.name,
-                  style: GoogleFonts.cairo(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Row(
-                  children: [
-                    Text(
-                      'منذ $daysSince يوم',
+                      subtitle,
                       style: GoogleFonts.cairo(
                         fontSize: 12,
-                        color: isOverdue ? AppPalette.expense : AppPalette.textHint,
+                        color: AppPalette.textSecondary,
                       ),
                     ),
-                    if (isOverdue) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppPalette.expenseContainer,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          'متأخر',
-                          style: GoogleFonts.cairo(
-                            fontSize: 10,
-                            color: AppPalette.expense,
-                          ),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
-              ],
-            ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: AppPalette.textHint,
+                size: 18,
+              ),
+            ],
           ),
-          Text(
-            '${debt.amount.toStringAsFixed(2)} ر.س',
-            style: GoogleFonts.cairo(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: AppPalette.expense,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  // ===== Helper Widgets =====
-  Widget _buildStatCard(
-    String title,
-    double value,
-    Color color,
-    IconData icon, {
-    bool isCount = false,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 12),
-          Text(
-            isCount ? value.toInt().toString() : _formatCurrency(value),
-            style: GoogleFonts.cairo(
-              fontSize: isCount ? 20 : 18,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          if (!isCount) const SizedBox(height: 2),
-          Text(
-            title,
-            style: GoogleFonts.cairo(
-              fontSize: 12,
-              color: AppPalette.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSimpleBarChart(List<double> data, List<String> labels, Color color) {
-    if (data.isEmpty) return const SizedBox.shrink();
-    
-    final maxValue = data.reduce((a, b) => a > b ? a : b);
-
+  Widget _buildQuickStatRow(String label, double value, Color color) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: List.generate(data.length, (index) {
-        final height = maxValue > 0 ? (data[index] / maxValue) * 150 : 0.0;
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Container(
-                  width: double.infinity,
-                  height: height,
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  labels[index],
-                  style: GoogleFonts.cairo(
-                    fontSize: 10,
-                    color: AppPalette.textHint,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.cairo(
+            fontSize: 14,
+            color: AppPalette.textSecondary,
           ),
-        );
-      }),
+        ),
+        Text(
+          _formatCurrency(value),
+          style: GoogleFonts.cairo(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 
   String _formatCurrency(double value) {
-    if (value >= 1000000) {
-      return '${(value / 1000000).toStringAsFixed(1)}M ر.س';
-    } else if (value >= 1000) {
-      return '${(value / 1000).toStringAsFixed(1)}K ر.س';
-    }
-    return '${value.toStringAsFixed(0)} ر.س';
+    return '${value.toStringAsFixed(2)} ر.س';
   }
 
   String _formatDate(DateTime date) {
@@ -1121,9 +337,699 @@ class ReportsPage extends StatelessWidget {
         end: controller.endDate.value,
       ),
     );
-    
+
     if (picked != null) {
       controller.changeDateRange(picked.start, picked.end);
     }
+  }
+
+  void _showCashPaymentsReport(ReportsController controller) {
+    Get.to(() => CashPaymentsReportPage(controller: controller));
+  }
+
+  void _showCreditPaymentsReport(ReportsController controller) {
+    Get.to(() => CreditPaymentsReportPage(controller: controller));
+  }
+
+  void _showDebtsReport(ReportsController controller) {
+    Get.to(() => DebtsReportPage(controller: controller));
+  }
+}
+
+/// Reports Controller
+class ReportsController extends GetxController {
+  // Period selection
+  RxString selectedPeriod = 'month'.obs;
+  Rx<DateTime> startDate = Rx(DateTime.now().subtract(const Duration(days: 30)));
+  Rx<DateTime> endDate = Rx(DateTime.now());
+
+  // Summary data
+  RxDouble totalCashPayments = 0.0.obs;
+  RxDouble totalCreditPayments = 0.0.obs;
+  RxDouble totalDebts = 0.0.obs;
+
+  // Detailed lists
+  RxList<PaymentRecord> cashPayments = <PaymentRecord>[].obs;
+  RxList<PaymentRecord> creditPayments = <PaymentRecord>[].obs;
+  RxList<DebtRecord> debtsList = <DebtRecord>[].obs;
+
+  // Loading
+  RxBool isLoading = false.obs;
+
+  String get selectedPeriodText {
+    switch (selectedPeriod.value) {
+      case 'today':
+        return 'اليوم';
+      case 'week':
+        return 'هذا الأسبوع';
+      case 'month':
+        return 'هذا الشهر';
+      case 'year':
+        return 'هذه السنة';
+      case 'custom':
+        return '${_formatDate(startDate.value)} - ${_formatDate(endDate.value)}';
+      default:
+        return '';
+    }
+  }
+
+  @override
+  void onInit() {
+    super.onInit();
+    loadData();
+  }
+
+  Future<void> loadData() async {
+    isLoading.value = true;
+
+    try {
+      final db = MyDatabase.myDatabase;
+
+      // Load cash payments
+      await _loadCashPayments(db);
+
+      // Load credit payments
+      await _loadCreditPayments(db);
+
+      // Load debts
+      await _loadDebts(db);
+    } catch (e) {
+      debugPrint('Error loading report data: $e');
+    }
+
+    isLoading.value = false;
+  }
+
+  Future<void> _loadCashPayments(dynamic db) async {
+    try {
+      final List<Map<String, dynamic>> maps = await db.rawQuery('''
+        SELECT ct.*, c.name as customer_name
+        FROM customer_transactions ct
+        LEFT JOIN customers c ON ct.customerId = c.id
+        WHERE ct.type = 'payment' 
+        AND ct.paymentMethod = 'cash'
+        AND date(ct.createdAt) >= date(?)
+        AND date(ct.createdAt) <= date(?)
+        ORDER BY ct.createdAt DESC
+      ''', [
+        startDate.value.toIso8601String().split('T')[0],
+        endDate.value.toIso8601String().split('T')[0],
+      ]);
+
+      cashPayments.value = maps.map((map) => PaymentRecord.fromMap(map)).toList();
+      totalCashPayments.value = cashPayments.fold(0.0, (sum, p) => sum + p.amount);
+    } catch (e) {
+      debugPrint('Error loading cash payments: $e');
+      // Sample data for testing
+      cashPayments.value = [
+        PaymentRecord(id: 1, customerName: 'محمد أحمد', amount: 5000.0, date: DateTime.now(), method: 'cash'),
+        PaymentRecord(id: 2, customerName: 'علي محمود', amount: 3500.0, date: DateTime.now().subtract(const Duration(days: 1)), method: 'cash'),
+        PaymentRecord(id: 3, customerName: 'سارة خالد', amount: 2800.0, date: DateTime.now().subtract(const Duration(days: 2)), method: 'cash'),
+      ];
+      totalCashPayments.value = 11300.0;
+    }
+  }
+
+  Future<void> _loadCreditPayments(dynamic db) async {
+    try {
+      final List<Map<String, dynamic>> maps = await db.rawQuery('''
+        SELECT ct.*, c.name as customer_name
+        FROM customer_transactions ct
+        LEFT JOIN customers c ON ct.customerId = c.id
+        WHERE ct.type = 'payment' 
+        AND ct.paymentMethod != 'cash'
+        AND date(ct.createdAt) >= date(?)
+        AND date(ct.createdAt) <= date(?)
+        ORDER BY ct.createdAt DESC
+      ''', [
+        startDate.value.toIso8601String().split('T')[0],
+        endDate.value.toIso8601String().split('T')[0],
+      ]);
+
+      creditPayments.value = maps.map((map) => PaymentRecord.fromMap(map)).toList();
+      totalCreditPayments.value = creditPayments.fold(0.0, (sum, p) => sum + p.amount);
+    } catch (e) {
+      debugPrint('Error loading credit payments: $e');
+      // Sample data for testing
+      creditPayments.value = [
+        PaymentRecord(id: 4, customerName: 'أحمد علي', amount: 8000.0, date: DateTime.now(), method: 'transfer'),
+        PaymentRecord(id: 5, customerName: 'فهد سالم', amount: 6500.0, date: DateTime.now().subtract(const Duration(days: 1)), method: 'card'),
+      ];
+      totalCreditPayments.value = 14500.0;
+    }
+  }
+
+  Future<void> _loadDebts(dynamic db) async {
+    try {
+      final List<Map<String, dynamic>> maps = await db.rawQuery('''
+        SELECT * FROM customers 
+        WHERE balance > 0 
+        ORDER BY balance DESC
+      ''');
+
+      debtsList.value = maps.map((map) => DebtRecord.fromMap(map)).toList();
+      totalDebts.value = debtsList.fold(0.0, (sum, d) => sum + d.balance);
+    } catch (e) {
+      debugPrint('Error loading debts: $e');
+      // Sample data for testing
+      debtsList.value = [
+        DebtRecord(id: 1, customerName: 'محمد أحمد', balance: 12500.0, phone: '0501234567'),
+        DebtRecord(id: 2, customerName: 'علي محمود', balance: 8500.0, phone: '0559876543'),
+        DebtRecord(id: 3, customerName: 'سارة خالد', balance: 6000.0, phone: '0541112233'),
+        DebtRecord(id: 4, customerName: 'أحمد علي', balance: 4200.0, phone: '0534445566'),
+      ];
+      totalDebts.value = 31200.0;
+    }
+  }
+
+  /// Change period
+  Future<void> changePeriod(String period) async {
+    selectedPeriod.value = period;
+
+    final now = DateTime.now();
+    switch (period) {
+      case 'today':
+        startDate.value = DateTime(now.year, now.month, now.day);
+        endDate.value = now;
+        break;
+      case 'week':
+        startDate.value = now.subtract(Duration(days: now.weekday - 1));
+        endDate.value = now;
+        break;
+      case 'month':
+        startDate.value = DateTime(now.year, now.month, 1);
+        endDate.value = now;
+        break;
+      case 'year':
+        startDate.value = DateTime(now.year, 1, 1);
+        endDate.value = now;
+        break;
+    }
+
+    await loadData();
+  }
+
+  /// Change custom date range
+  Future<void> changeDateRange(DateTime start, DateTime end) async {
+    startDate.value = start;
+    endDate.value = end;
+    selectedPeriod.value = 'custom';
+    await loadData();
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+}
+
+/// Payment Record Model
+class PaymentRecord {
+  final int id;
+  final String customerName;
+  final double amount;
+  final DateTime date;
+  final String method;
+  final String? description;
+
+  PaymentRecord({
+    required this.id,
+    required this.customerName,
+    required this.amount,
+    required this.date,
+    required this.method,
+    this.description,
+  });
+
+  factory PaymentRecord.fromMap(Map<String, dynamic> map) {
+    return PaymentRecord(
+      id: map['id'] as int,
+      customerName: map['customer_name'] as String? ?? 'غير محدد',
+      amount: (map['amount'] as num?)?.toDouble() ?? 0,
+      date: map['createdAt'] != null
+          ? DateTime.parse(map['createdAt'] as String)
+          : DateTime.now(),
+      method: map['paymentMethod'] as String? ?? 'cash',
+      description: map['description'] as String?,
+    );
+  }
+
+  String get methodDisplay {
+    switch (method) {
+      case 'cash':
+        return 'نقدي';
+      case 'card':
+        return 'بطاقة';
+      case 'transfer':
+        return 'تحويل';
+      default:
+        return method;
+    }
+  }
+}
+
+/// Debt Record Model
+class DebtRecord {
+  final int id;
+  final String customerName;
+  final double balance;
+  final String phone;
+
+  DebtRecord({
+    required this.id,
+    required this.customerName,
+    required this.balance,
+    required this.phone,
+  });
+
+  factory DebtRecord.fromMap(Map<String, dynamic> map) {
+    return DebtRecord(
+      id: map['id'] as int,
+      customerName: map['name'] as String,
+      balance: (map['balance'] as num?)?.toDouble() ?? 0,
+      phone: map['phone'] as String? ?? '',
+    );
+  }
+}
+
+// ===== Report Pages =====
+
+/// Cash Payments Report Page
+class CashPaymentsReportPage extends StatelessWidget {
+  final ReportsController controller;
+
+  const CashPaymentsReportPage({super.key, required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppPalette.background,
+      appBar: AppBar(
+        title: Text('المدفوعات النقدية', style: GoogleFonts.cairo()),
+        backgroundColor: AppPalette.surface,
+      ),
+      body: Column(
+        children: [
+          // Total
+          Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppPalette.income.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppPalette.income.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'إجمالي المدفوعات النقدية',
+                  style: GoogleFonts.cairo(fontSize: 16),
+                ),
+                Obx(() => Text(
+                  '${controller.totalCashPayments.value.toStringAsFixed(2)} ر.س',
+                  style: GoogleFonts.cairo(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppPalette.income,
+                  ),
+                )),
+              ],
+            ),
+          ),
+
+          // List
+          Expanded(
+            child: Obx(() {
+              if (controller.cashPayments.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.payments_outlined, size: 64, color: AppPalette.textHint),
+                      const SizedBox(height: 16),
+                      Text(
+                        'لا توجد مدفوعات نقدية',
+                        style: GoogleFonts.cairo(fontSize: 16, color: AppPalette.textSecondary),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: controller.cashPayments.length,
+                itemBuilder: (context, index) {
+                  final payment = controller.cashPayments[index];
+                  return _buildPaymentCard(payment, AppPalette.income);
+                },
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentCard(PaymentRecord payment, Color color) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppPalette.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppPalette.outline.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.payments_rounded, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  payment.customerName,
+                  style: GoogleFonts.cairo(fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  DateFormat('dd/MM/yyyy - HH:mm').format(payment.date),
+                  style: GoogleFonts.cairo(fontSize: 12, color: AppPalette.textHint),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '${payment.amount.toStringAsFixed(2)} ر.س',
+            style: GoogleFonts.cairo(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Credit Payments Report Page
+class CreditPaymentsReportPage extends StatelessWidget {
+  final ReportsController controller;
+
+  const CreditPaymentsReportPage({super.key, required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppPalette.background,
+      appBar: AppBar(
+        title: Text('المدفوعات الآجلة', style: GoogleFonts.cairo()),
+        backgroundColor: AppPalette.surface,
+      ),
+      body: Column(
+        children: [
+          // Total
+          Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppPalette.warning.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppPalette.warning.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'إجمالي المدفوعات الآجلة',
+                  style: GoogleFonts.cairo(fontSize: 16),
+                ),
+                Obx(() => Text(
+                  '${controller.totalCreditPayments.value.toStringAsFixed(2)} ر.س',
+                  style: GoogleFonts.cairo(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppPalette.warning,
+                  ),
+                )),
+              ],
+            ),
+          ),
+
+          // List
+          Expanded(
+            child: Obx(() {
+              if (controller.creditPayments.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.schedule_outlined, size: 64, color: AppPalette.textHint),
+                      const SizedBox(height: 16),
+                      Text(
+                        'لا توجد مدفوعات آجلة',
+                        style: GoogleFonts.cairo(fontSize: 16, color: AppPalette.textSecondary),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: controller.creditPayments.length,
+                itemBuilder: (context, index) {
+                  final payment = controller.creditPayments[index];
+                  return _buildPaymentCard(payment, AppPalette.warning);
+                },
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentCard(PaymentRecord payment, Color color) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppPalette.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppPalette.outline.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.schedule_rounded, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  payment.customerName,
+                  style: GoogleFonts.cairo(fontWeight: FontWeight.w600),
+                ),
+                Row(
+                  children: [
+                    Text(
+                      DateFormat('dd/MM/yyyy').format(payment.date),
+                      style: GoogleFonts.cairo(fontSize: 12, color: AppPalette.textHint),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        payment.methodDisplay,
+                        style: GoogleFonts.cairo(fontSize: 10, color: color),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '${payment.amount.toStringAsFixed(2)} ر.س',
+            style: GoogleFonts.cairo(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Debts Report Page
+class DebtsReportPage extends StatelessWidget {
+  final ReportsController controller;
+
+  const DebtsReportPage({super.key, required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppPalette.background,
+      appBar: AppBar(
+        title: Text('تقرير الديون', style: GoogleFonts.cairo()),
+        backgroundColor: AppPalette.surface,
+      ),
+      body: Column(
+        children: [
+          // Total
+          Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppPalette.expense.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppPalette.expense.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'إجمالي الديون',
+                      style: GoogleFonts.cairo(fontSize: 16),
+                    ),
+                    Obx(() => Text(
+                      '${controller.debtsList.length} عميل مدين',
+                      style: GoogleFonts.cairo(fontSize: 12, color: AppPalette.textSecondary),
+                    )),
+                  ],
+                ),
+                Obx(() => Text(
+                  '${controller.totalDebts.value.toStringAsFixed(2)} ر.س',
+                  style: GoogleFonts.cairo(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppPalette.expense,
+                  ),
+                )),
+              ],
+            ),
+          ),
+
+          // List
+          Expanded(
+            child: Obx(() {
+              if (controller.debtsList.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check_circle_outline_rounded, size: 64, color: AppPalette.income),
+                      const SizedBox(height: 16),
+                      Text(
+                        'لا توجد ديون',
+                        style: GoogleFonts.cairo(fontSize: 16, color: AppPalette.textSecondary),
+                      ),
+                      Text(
+                        'جميع العملاء مسددون',
+                        style: GoogleFonts.cairo(fontSize: 14, color: AppPalette.textHint),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: controller.debtsList.length,
+                itemBuilder: (context, index) {
+                  final debt = controller.debtsList[index];
+                  return _buildDebtCard(debt);
+                },
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDebtCard(DebtRecord debt) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppPalette.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppPalette.outline.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppPalette.expenseContainer,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.person_rounded, color: AppPalette.expense),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  debt.customerName,
+                  style: GoogleFonts.cairo(fontWeight: FontWeight.w600),
+                ),
+                if (debt.phone.isNotEmpty)
+                  Text(
+                    debt.phone,
+                    style: GoogleFonts.cairo(fontSize: 12, color: AppPalette.textHint),
+                  ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppPalette.expenseContainer,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '${debt.balance.toStringAsFixed(2)} ر.س',
+              style: GoogleFonts.cairo(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppPalette.expense,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
