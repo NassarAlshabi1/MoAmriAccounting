@@ -852,59 +852,77 @@ class DebtsPage extends StatelessWidget {
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('إلغاء', style: GoogleFonts.cairo()),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final amount = double.tryParse(amountController.text);
-                if (amount == null || amount <= 0) {
-                  Get.snackbar(
-                    'خطأ',
-                    'يرجى إدخال مبلغ صحيح',
-                    backgroundColor: AppPalette.expenseContainer,
-                    colorText: AppPalette.expense,
-                  );
-                  return;
-                }
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: BorderSide(color: AppPalette.outline),
+                    ),
+                    child: Text('إلغاء', style: GoogleFonts.cairo()),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final amount = double.tryParse(amountController.text);
+                      if (amount == null || amount <= 0) {
+                        Get.snackbar(
+                          'خطأ',
+                          'يرجى إدخال مبلغ صحيح',
+                          backgroundColor: AppPalette.expenseContainer,
+                          colorText: AppPalette.expense,
+                        );
+                        return;
+                      }
 
-                if (amount > customer.balance) {
-                  Get.snackbar(
-                    'خطأ',
-                    'المبلغ أكبر من الرصيد المستحق',
-                    backgroundColor: AppPalette.expenseContainer,
-                    colorText: AppPalette.expense,
-                  );
-                  return;
-                }
+                      if (amount > customer.balance) {
+                        Get.snackbar(
+                          'خطأ',
+                          'المبلغ أكبر من الرصيد المستحق',
+                          backgroundColor: AppPalette.expenseContainer,
+                          colorText: AppPalette.expense,
+                        );
+                        return;
+                      }
 
-                final result = await controller.recordPayment(
-                  customer,
-                  amount,
-                  selectedPaymentMethod,
-                  descriptionController.text,
-                );
+                      final result = await controller.recordPayment(
+                        customer,
+                        amount,
+                        selectedPaymentMethod,
+                        descriptionController.text,
+                      );
 
-                Navigator.pop(context);
+                      Navigator.pop(context);
 
-                if (result.isSuccess) {
-                  Get.snackbar(
-                    'تم',
-                    'تم تسجيل السداد بنجاح',
-                    backgroundColor: AppPalette.incomeContainer,
-                    colorText: AppPalette.income,
-                  );
-                } else {
-                  Get.snackbar(
-                    'خطأ',
-                    result.errorMessage ?? 'فشل في تسجيل السداد',
-                    backgroundColor: AppPalette.expenseContainer,
-                    colorText: AppPalette.expense,
-                  );
-                }
-              },
-              child: Text('تأكيد', style: GoogleFonts.cairo()),
+                      if (result.isSuccess) {
+                        Get.snackbar(
+                          'تم',
+                          'تم تسجيل السداد بنجاح',
+                          backgroundColor: AppPalette.incomeContainer,
+                          colorText: AppPalette.income,
+                        );
+                      } else {
+                        Get.snackbar(
+                          'خطأ',
+                          result.errorMessage ?? 'فشل في تسجيل السداد',
+                          backgroundColor: AppPalette.expenseContainer,
+                          colorText: AppPalette.expense,
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppPalette.income,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: Text('تأكيد السداد', style: GoogleFonts.cairo(fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -941,9 +959,17 @@ class DebtsPage extends StatelessWidget {
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('حسناً', style: GoogleFonts.cairo()),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppPalette.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              child: Text('حسناً', style: GoogleFonts.cairo(fontWeight: FontWeight.w600)),
+            ),
           ),
         ],
       ),

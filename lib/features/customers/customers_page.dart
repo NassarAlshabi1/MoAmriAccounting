@@ -877,71 +877,89 @@ class CustomersPage extends StatelessWidget {
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('إلغاء', style: GoogleFonts.cairo()),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: BorderSide(color: AppPalette.outline),
+                    ),
+                    child: Text('إلغاء', style: GoogleFonts.cairo()),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Obx(() => ElevatedButton(
+                    onPressed: controller.isSaving.value
+                        ? null
+                        : () async {
+                            if (nameController.text.isEmpty) {
+                              Get.snackbar(
+                                'خطأ',
+                                'يرجى إدخال اسم العميل',
+                                backgroundColor: AppPalette.expenseContainer,
+                                colorText: AppPalette.expense,
+                              );
+                              return;
+                            }
+
+                            final customer = Customer(
+                              name: nameController.text,
+                              phone: phoneController.text,
+                              address: addressController.text,
+                              description: descriptionController.text,
+                              currency: selectedCurrency,
+                            );
+
+                            final result = await controller.addCustomer(customer);
+
+                            // Add opening balance if provided
+                            if (result.isSuccess && openingBalanceController.text.isNotEmpty) {
+                              final balance = double.tryParse(openingBalanceController.text);
+                              if (balance != null && balance > 0) {
+                                await controller.recordOpeningBalance(
+                                  customerId: result.data!,
+                                  amount: balance,
+                                );
+                              }
+                            }
+
+                            Navigator.pop(context);
+
+                            if (result.isSuccess) {
+                              Get.snackbar(
+                                'تم',
+                                'تم إضافة العميل بنجاح',
+                                backgroundColor: AppPalette.incomeContainer,
+                                colorText: AppPalette.income,
+                              );
+                            } else {
+                              Get.snackbar(
+                                'خطأ',
+                                result.errorMessage ?? 'فشل في إضافة العميل',
+                                backgroundColor: AppPalette.expenseContainer,
+                                colorText: AppPalette.expense,
+                              );
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppPalette.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: controller.isSaving.value
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : Text('حفظ', style: GoogleFonts.cairo(fontWeight: FontWeight.w600)),
+                  )),
+                ),
+              ],
             ),
-            Obx(() => ElevatedButton(
-              onPressed: controller.isSaving.value
-                  ? null
-                  : () async {
-                      if (nameController.text.isEmpty) {
-                        Get.snackbar(
-                          'خطأ',
-                          'يرجى إدخال اسم العميل',
-                          backgroundColor: AppPalette.expenseContainer,
-                          colorText: AppPalette.expense,
-                        );
-                        return;
-                      }
-
-                      final customer = Customer(
-                        name: nameController.text,
-                        phone: phoneController.text,
-                        address: addressController.text,
-                        description: descriptionController.text,
-                        currency: selectedCurrency,
-                      );
-
-                      final result = await controller.addCustomer(customer);
-
-                      // Add opening balance if provided
-                      if (result.isSuccess && openingBalanceController.text.isNotEmpty) {
-                        final balance = double.tryParse(openingBalanceController.text);
-                        if (balance != null && balance > 0) {
-                          await controller.recordOpeningBalance(
-                            customerId: result.data!,
-                            amount: balance,
-                          );
-                        }
-                      }
-
-                      Navigator.pop(context);
-
-                      if (result.isSuccess) {
-                        Get.snackbar(
-                          'تم',
-                          'تم إضافة العميل بنجاح',
-                          backgroundColor: AppPalette.incomeContainer,
-                          colorText: AppPalette.income,
-                        );
-                      } else {
-                        Get.snackbar(
-                          'خطأ',
-                          result.errorMessage ?? 'فشل في إضافة العميل',
-                          backgroundColor: AppPalette.expenseContainer,
-                          colorText: AppPalette.expense,
-                        );
-                      }
-                    },
-              child: controller.isSaving.value
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text('حفظ', style: GoogleFonts.cairo()),
-            )),
           ],
         ),
       ),
@@ -1029,50 +1047,68 @@ class CustomersPage extends StatelessWidget {
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('إلغاء', style: GoogleFonts.cairo()),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (nameController.text.isEmpty) {
-                  Get.snackbar(
-                    'خطأ',
-                    'يرجى إدخال اسم العميل',
-                    backgroundColor: AppPalette.expenseContainer,
-                    colorText: AppPalette.expense,
-                  );
-                  return;
-                }
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: BorderSide(color: AppPalette.outline),
+                    ),
+                    child: Text('إلغاء', style: GoogleFonts.cairo()),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (nameController.text.isEmpty) {
+                        Get.snackbar(
+                          'خطأ',
+                          'يرجى إدخال اسم العميل',
+                          backgroundColor: AppPalette.expenseContainer,
+                          colorText: AppPalette.expense,
+                        );
+                        return;
+                      }
 
-                final updatedCustomer = customer.copyWith(
-                  name: nameController.text,
-                  phone: phoneController.text,
-                  address: addressController.text,
-                  description: descriptionController.text,
-                  currency: selectedCurrency,
-                );
+                      final updatedCustomer = customer.copyWith(
+                        name: nameController.text,
+                        phone: phoneController.text,
+                        address: addressController.text,
+                        description: descriptionController.text,
+                        currency: selectedCurrency,
+                      );
 
-                final result = await controller.updateCustomer(updatedCustomer, customer);
-                Navigator.pop(context);
+                      final result = await controller.updateCustomer(updatedCustomer, customer);
+                      Navigator.pop(context);
 
-                if (result.isSuccess) {
-                  Get.snackbar(
-                    'تم',
-                    'تم تحديث العميل بنجاح',
-                    backgroundColor: AppPalette.incomeContainer,
-                    colorText: AppPalette.income,
-                  );
-                } else {
-                  Get.snackbar(
-                    'خطأ',
-                    result.errorMessage ?? 'فشل في تحديث العميل',
-                    backgroundColor: AppPalette.expenseContainer,
-                    colorText: AppPalette.expense,
-                  );
-                }
-              },
-              child: Text('حفظ', style: GoogleFonts.cairo()),
+                      if (result.isSuccess) {
+                        Get.snackbar(
+                          'تم',
+                          'تم تحديث العميل بنجاح',
+                          backgroundColor: AppPalette.incomeContainer,
+                          colorText: AppPalette.income,
+                        );
+                      } else {
+                        Get.snackbar(
+                          'خطأ',
+                          result.errorMessage ?? 'فشل في تحديث العميل',
+                          backgroundColor: AppPalette.expenseContainer,
+                          colorText: AppPalette.expense,
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppPalette.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: Text('حفظ', style: GoogleFonts.cairo(fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -1162,49 +1198,67 @@ class CustomersPage extends StatelessWidget {
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('إلغاء', style: GoogleFonts.cairo()),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final amount = double.tryParse(amountController.text);
-                if (amount == null || amount <= 0) {
-                  Get.snackbar(
-                    'خطأ',
-                    'يرجى إدخال مبلغ صحيح',
-                    backgroundColor: AppPalette.expenseContainer,
-                    colorText: AppPalette.expense,
-                  );
-                  return;
-                }
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: BorderSide(color: AppPalette.outline),
+                    ),
+                    child: Text('إلغاء', style: GoogleFonts.cairo()),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final amount = double.tryParse(amountController.text);
+                      if (amount == null || amount <= 0) {
+                        Get.snackbar(
+                          'خطأ',
+                          'يرجى إدخال مبلغ صحيح',
+                          backgroundColor: AppPalette.expenseContainer,
+                          colorText: AppPalette.expense,
+                        );
+                        return;
+                      }
 
-                final result = await controller.recordPayment(
-                  customerId: customer.id!,
-                  amount: amount,
-                  paymentMethod: selectedPaymentMethod,
-                  description: descriptionController.text,
-                );
+                      final result = await controller.recordPayment(
+                        customerId: customer.id!,
+                        amount: amount,
+                        paymentMethod: selectedPaymentMethod,
+                        description: descriptionController.text,
+                      );
 
-                Navigator.pop(context);
+                      Navigator.pop(context);
 
-                if (result.isSuccess) {
-                  Get.snackbar(
-                    'تم',
-                    'تم تسجيل السداد بنجاح',
-                    backgroundColor: AppPalette.incomeContainer,
-                    colorText: AppPalette.income,
-                  );
-                } else {
-                  Get.snackbar(
-                    'خطأ',
-                    result.errorMessage ?? 'فشل في تسجيل السداد',
-                    backgroundColor: AppPalette.expenseContainer,
-                    colorText: AppPalette.expense,
-                  );
-                }
-              },
-              child: Text('تأكيد', style: GoogleFonts.cairo()),
+                      if (result.isSuccess) {
+                        Get.snackbar(
+                          'تم',
+                          'تم تسجيل السداد بنجاح',
+                          backgroundColor: AppPalette.incomeContainer,
+                          colorText: AppPalette.income,
+                        );
+                      } else {
+                        Get.snackbar(
+                          'خطأ',
+                          result.errorMessage ?? 'فشل في تسجيل السداد',
+                          backgroundColor: AppPalette.expenseContainer,
+                          colorText: AppPalette.expense,
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppPalette.income,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: Text('تأكيد السداد', style: GoogleFonts.cairo(fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
