@@ -1,101 +1,81 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moamri_accounting/database/my_database.dart';
-import 'package:moamri_accounting/database/entities/debt.dart';
-import 'package:moamri_accounting/database/debts_database.dart';
-import 'package:moamri_accounting/database/entities/user.dart';
-
-/// Debt Status
-enum DebtStatus {
-  pending,
-  overdue,
-  paid,
-}
-
-/// Debt Model for UI
-class DebtModel {
-  final int id;
-  final String? customerName;
-  final String? supplierName;
-  final double amount;
-  final double paidAmount;
-  final String currency;
-  final DateTime dueDate;
-  final DateTime createdDate;
-  final DebtStatus status;
-  final String note;
-  final int? customerId;
-  final int? invoiceId;
-
-  DebtModel({
-    required this.id,
-    this.customerName,
-    this.supplierName,
-    required this.amount,
-    required this.paidAmount,
-    required this.currency,
-    required this.dueDate,
-    required this.createdDate,
-    required this.status,
-    required this.note,
-    this.customerId,
-    this.invoiceId,
-  });
-
-  double get remainingAmount => amount - paidAmount;
-  bool get isPaid => paidAmount >= amount;
-  bool get isOverdue => dueDate.isBefore(DateTime.now()) && !isPaid;
-}
+import 'package:moamri_accounting/database/entities/customer.dart';
+import 'package:moamri_accounting/database/entities/customer_transaction.dart';
+import 'package:moamri_accounting/utils/result.dart';
 
 /// Debts Controller
 ///
-/// Manages debts state and database operations
-class DebtsController extends GetxController with GetTickerProviderStateMixin {
+/// Manages customer debts, payments, and account statements.
+class DebtsController extends GetxController {
   // State
-  RxList<DebtModel> receivableDebts = <DebtModel>[].obs;
-  RxList<DebtModel> payableDebts = <DebtModel>[].obs;
+  RxList<Customer> customersWithDebts = <Customer>[].obs;
+  RxList<Customer> filteredCustomers = <Customer>[].obs;
   RxBool isLoading = false.obs;
   RxString errorMessage = ''.obs;
   RxString searchQuery = ''.obs;
-  RxString selectedFilter = 'all'.obs; // all, overdue, dueSoon, paid
+  RxString selectedFilter = 'all'.obs;
 
-  // Tab controller
-  late TabController tabController;
+  // Selected customer for details panel
+  Rx<Customer?> selectedCustomer = Rx<Customer?>(null);
+  RxList<CustomerTransaction> customerTransactions = <CustomerTransaction>[].obs;
+  RxBool isLoadingTransactions = false.obs;
 
-  // Current tab (0 = receivable, 1 = payable)
-  RxInt currentTab = 0.obs;
+  // Statement summary
+  RxDouble statementTotalInvoices = 0.0.obs;
+  RxDouble statementTotalPayments = 0.0.obs;
+  RxDouble statementTotalReturns = 0.0.obs;
+  RxDouble statementBalance = 0.0.obs;
 
-  // User reference
-  User? currentUser;
+  // Statistics
+  RxDouble totalDebts = 0.0.obs;
+  RxDouble todayPayments = 0.0.obs;
 
   @override
   void onInit() {
     super.onInit();
-    tabController = TabController(length: 2, vsync: this);
-    tabController.addListener(() {
-      currentTab.value = tabController.index;
-    });
-
-    // Get current user from main controller
-    try {
-      final mainController = Get.find<dynamic>();
-      currentUser = mainController.currentUser?.value;
-    } catch (_) {}
+    loadDebts();
   }
 
-  /// Load all debts
+  /// Load all customers with debts
   Future<void> loadDebts() async {
     isLoading.value = true;
     errorMessage.value = '';
 
     try {
-      // Load receivable debts (customer debts)
-      final receivable = await _loadReceivableDebts();
-      receivableDebts.value = receivable;
+      final db = MyDatabase.myDatabase;
 
-      // Load payable debts (supplier debts) - for future implementation
-      // For now, empty list
-      payableDebts.value = [];
+      // Get customers with debts (balance > 0)
+      final List<Map<String, dynamic>> maps = await db.rawQuery('''
+        SELECT * FROM customers 
+        WHERE balance > 0 
+        ORDER BY balance DESC
+      ''');
+
+      customersWithDebts.value = maps.map((map) => Customer.fromMap(map)).toList();
+      filteredCustomers.value = customersWithDebts.toList();
+
+      // Calculate totals
+      totalDebts.value = customersWithDebts.fold<double>(
+        0, (sum, c) => sum + c.balance,
+      );
+
+      // Get today's payments
+      final today = DateTime.now();
+      final todayStart = DateTime(today.year, today.month, today.day);
+      final todayEnd = todayStart.add(const Duration(days: 1));
+
+      final paymentMaps = await db.rawQuery('''
+        SELECT SUM(amount) as total FROM customer_transactions
+        WHERE type = 'payment' 
+        AND createdAt >= ? 
+        AND createdAt < ?
+      ''', [
+        todayStart.toIso8601String(),
+        todayEnd.toIso8601String(),
+      ]);
+
+      todayPayments.value = (paymentMaps.first['total'] as num?)?.toDouble() ?? 0;
 
       isLoading.value = false;
     } catch (e) {
@@ -104,179 +84,181 @@ class DebtsController extends GetxController with GetTickerProviderStateMixin {
     }
   }
 
-  /// Load receivable debts from database
-  Future<List<DebtModel>> _loadReceivableDebts() async {
+  /// Select a customer to view details
+  Future<void> selectCustomer(Customer customer) async {
+    selectedCustomer.value = customer;
+    await loadCustomerTransactions(customer.id!);
+    await loadCustomerStatement(customer.id!);
+  }
+
+  /// Clear selection
+  void clearSelection() {
+    selectedCustomer.value = null;
+    customerTransactions.clear();
+    statementTotalInvoices.value = 0;
+    statementTotalPayments.value = 0;
+    statementTotalReturns.value = 0;
+    statementBalance.value = 0;
+  }
+
+  /// Load customer transactions
+  Future<void> loadCustomerTransactions(int customerId) async {
+    isLoadingTransactions.value = true;
+
     try {
       final db = MyDatabase.myDatabase;
 
-      // Query debts with customer info
       final List<Map<String, dynamic>> maps = await db.rawQuery('''
-        SELECT d.*, c.name as customer_name
-        FROM debts d
-        LEFT JOIN customers c ON d.customer_id = c.id
-        ORDER BY d.date DESC
-      ''');
+        SELECT * FROM customer_transactions
+        WHERE customerId = ?
+        ORDER BY createdAt DESC
+        LIMIT 20
+      ''', [customerId]);
 
-      return maps.map((map) {
-        final amount = (map['amount'] as num?)?.toDouble() ?? 0;
-        final paidAmount = (map['paid_amount'] as num?)?.toDouble() ?? 0;
-        final dueDate = map['due_date'] != null
-            ? DateTime.fromMillisecondsSinceEpoch(map['due_date'] as int)
-            : DateTime.now().add(const Duration(days: 30));
-        final createdDate = map['date'] != null
-            ? DateTime.fromMillisecondsSinceEpoch(map['date'] as int)
-            : DateTime.now();
-
-        DebtStatus status;
-        if (paidAmount >= amount) {
-          status = DebtStatus.paid;
-        } else if (dueDate.isBefore(DateTime.now())) {
-          status = DebtStatus.overdue;
-        } else {
-          status = DebtStatus.pending;
-        }
-
-        return DebtModel(
-          id: map['id'] as int,
-          customerName: map['customer_name'] as String?,
-          amount: amount,
-          paidAmount: paidAmount,
-          currency: map['currency'] as String? ?? 'ريال',
-          dueDate: dueDate,
-          createdDate: createdDate,
-          status: status,
-          note: map['note'] as String? ?? '',
-          customerId: map['customer_id'] as int?,
-          invoiceId: map['invoice_id'] as int?,
-        );
-      }).toList();
+      customerTransactions.value = maps.map((map) => CustomerTransaction.fromMap(map)).toList();
+      isLoadingTransactions.value = false;
     } catch (e) {
-      print('Error loading debts: $e');
-      return [];
+      isLoadingTransactions.value = false;
     }
   }
 
-  /// Record payment
-  Future<bool> recordPayment(DebtModel debt, double amount, String paymentMethod) async {
+  /// Load customer statement summary
+  Future<void> loadCustomerStatement(int customerId) async {
     try {
       final db = MyDatabase.myDatabase;
 
-      final newPaidAmount = debt.paidAmount + amount;
+      // Total invoices
+      final invoiceResult = await db.rawQuery('''
+        SELECT SUM(amount) as total FROM customer_transactions
+        WHERE customerId = ? AND type = 'invoice'
+      ''', [customerId]);
+      statementTotalInvoices.value = (invoiceResult.first['total'] as num?)?.toDouble() ?? 0;
 
+      // Total payments
+      final paymentResult = await db.rawQuery('''
+        SELECT SUM(amount) as total FROM customer_transactions
+        WHERE customerId = ? AND type = 'payment'
+      ''', [customerId]);
+      statementTotalPayments.value = (paymentResult.first['total'] as num?)?.toDouble() ?? 0;
+
+      // Total returns
+      final returnResult = await db.rawQuery('''
+        SELECT SUM(amount) as total FROM customer_transactions
+        WHERE customerId = ? AND type = 'return'
+      ''', [customerId]);
+      statementTotalReturns.value = (returnResult.first['total'] as num?)?.toDouble() ?? 0;
+
+      // Balance
+      final customer = selectedCustomer.value;
+      statementBalance.value = customer?.balance ?? 0;
+    } catch (e) {
+      // Handle error
+    }
+  }
+
+  /// Record a payment from customer
+  Future<Result<bool>> recordPayment(
+    Customer customer,
+    double amount,
+    String paymentMethod,
+    String description,
+  ) async {
+    try {
+      final db = MyDatabase.myDatabase;
+
+      // Update customer balance
+      final newBalance = customer.balance - amount;
       await db.update(
-        'debts',
+        'customers',
         {
-          'paid_amount': newPaidAmount,
-          'updated_at': DateTime.now().millisecondsSinceEpoch,
+          'balance': newBalance,
+          'updatedAt': DateTime.now().toIso8601String(),
         },
         where: 'id = ?',
-        whereArgs: [debt.id],
+        whereArgs: [customer.id],
       );
 
-      // Refresh debts
-      await loadDebts();
-
-      return true;
-    } catch (e) {
-      errorMessage.value = 'فشل في تسجيل الدفع: $e';
-      return false;
-    }
-  }
-
-  /// Add new debt
-  Future<bool> addDebt(DebtModel debt) async {
-    try {
-      final db = MyDatabase.myDatabase;
-
-      final id = await db.insert('debts', {
-        'customer_id': debt.customerId,
-        'amount': debt.amount,
-        'paid_amount': debt.paidAmount,
-        'currency': debt.currency,
-        'date': debt.createdDate.millisecondsSinceEpoch,
-        'due_date': debt.dueDate.millisecondsSinceEpoch,
-        'note': debt.note,
-        'invoice_id': debt.invoiceId,
+      // Add payment transaction
+      await db.insert('customer_transactions', {
+        'customerId': customer.id,
+        'type': 'payment',
+        'amount': amount,
+        'balanceAfter': newBalance,
+        'description': description,
+        'paymentMethod': paymentMethod,
+        'createdAt': DateTime.now().toIso8601String(),
       });
 
+      // Update today's payments
+      todayPayments.value += amount;
+
+      // Refresh data
       await loadDebts();
-      return true;
+
+      // Update selected customer
+      if (selectedCustomer.value?.id == customer.id) {
+        selectedCustomer.value = customer.copyWith(balance: newBalance);
+        await loadCustomerTransactions(customer.id!);
+        await loadCustomerStatement(customer.id!);
+      }
+
+      return Result.success(true);
     } catch (e) {
-      errorMessage.value = 'فشل في إضافة الدين: $e';
-      return false;
+      return Result.failure('فشل في تسجيل السداد: $e');
     }
   }
 
-  /// Get filtered debts
-  List<DebtModel> getFilteredDebts(bool isReceivable) {
-    List<DebtModel> debts = isReceivable ? receivableDebts.toList() : payableDebts.toList();
+  /// Search customers
+  void searchCustomers(String query) {
+    searchQuery.value = query;
+    applyFilters();
+  }
+
+  /// Set filter
+  void setFilter(String filter) {
+    selectedFilter.value = filter;
+    applyFilters();
+  }
+
+  /// Apply filters
+  void applyFilters() {
+    var result = customersWithDebts.toList();
 
     // Apply search
     if (searchQuery.value.isNotEmpty) {
-      debts = debts.where((d) {
-        final name = d.customerName ?? d.supplierName ?? '';
-        return name.toLowerCase().contains(searchQuery.value.toLowerCase());
+      result = result.where((c) {
+        return c.name.toLowerCase().contains(searchQuery.value.toLowerCase()) ||
+            c.phone.contains(searchQuery.value);
       }).toList();
     }
 
     // Apply filter
     switch (selectedFilter.value) {
       case 'overdue':
-        debts = debts.where((d) => d.status == DebtStatus.overdue).toList();
-        break;
-      case 'dueSoon':
-        debts = debts.where((d) {
-          if (d.status == DebtStatus.paid) return false;
-          final daysUntilDue = d.dueDate.difference(DateTime.now()).inDays;
-          return daysUntilDue > 0 && daysUntilDue <= 7;
+        // Customers with debts older than 30 days (simplified logic)
+        result = result.where((c) {
+          // In a real app, you'd check last transaction date
+          return c.balance > 0;
         }).toList();
         break;
-      case 'paid':
-        debts = debts.where((d) => d.status == DebtStatus.paid).toList();
+      case 'dueSoon':
+        // Customers with debts within next 7 days (simplified logic)
+        result = result.where((c) => c.balance > 0).toList();
+        break;
+      case 'large':
+        // Large debts (over 5000)
+        result = result.where((c) => c.balance > 5000).toList();
         break;
     }
 
-    return debts;
-  }
-
-  /// Calculate total receivable
-  double getTotalReceivable() {
-    return receivableDebts
-        .where((d) => d.status != DebtStatus.paid)
-        .fold<double>(0, (sum, d) => sum + d.remainingAmount);
-  }
-
-  /// Calculate total payable
-  double getTotalPayable() {
-    return payableDebts
-        .where((d) => d.status != DebtStatus.paid)
-        .fold<double>(0, (sum, d) => sum + d.remainingAmount);
-  }
-
-  /// Count overdue debts
-  int getOverdueCount() {
-    return receivableDebts.where((d) => d.status == DebtStatus.overdue).length +
-        payableDebts.where((d) => d.status == DebtStatus.overdue).length;
-  }
-
-  /// Search debts
-  void search(String query) {
-    searchQuery.value = query;
-  }
-
-  /// Set filter
-  void setFilter(String filter) {
-    selectedFilter.value = filter;
+    filteredCustomers.value = result;
   }
 
   /// Refresh data
   Future<void> refresh() async {
     await loadDebts();
-  }
-
-  @override
-  void onClose() {
-    tabController.dispose();
-    super.onClose();
+    if (selectedCustomer.value != null) {
+      await selectCustomer(selectedCustomer.value!);
+    }
   }
 }

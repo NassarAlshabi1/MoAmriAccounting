@@ -1,132 +1,68 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:moamri_accounting/shared/theme/app_palette.dart';
-import 'package:moamri_accounting/shared/widgets/form_fields.dart';
 import 'package:moamri_accounting/shared/widgets/buttons.dart';
+import 'package:moamri_accounting/shared/widgets/form_fields.dart';
+import 'package:moamri_accounting/database/entities/customer.dart';
+import 'package:moamri_accounting/database/entities/customer_transaction.dart';
+import 'package:moamri_accounting/features/customers/customer_report_page.dart';
+import 'debts_controller.dart';
 
-/// Debts Page - Modern Debt Management
+/// Debts Page - Customer Debt Management
 ///
 /// Features:
-/// - Total debts summary (receivable/payable)
-/// - Debts list with status
-/// - Payment tracking
-/// - Due date alerts
-/// - Quick payment recording
-class DebtsPage extends StatefulWidget {
+/// - View all customers with debts
+/// - Track payment history
+/// - Record payments
+/// - View account statements
+/// - Debt statistics and alerts
+class DebtsPage extends StatelessWidget {
   const DebtsPage({super.key});
 
   @override
-  State<DebtsPage> createState() => _DebtsPageState();
-}
-
-class _DebtsPageState extends State<DebtsPage> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  final _searchController = TextEditingController();
-  bool _isLoading = false;
-  String _selectedFilter = 'all'; // all, overdue, due-soon, paid
-
-  // Sample data
-  final List<Debt> _receivableDebts = [
-    Debt(
-      id: 1,
-      customerName: 'محمد أحمد العلي',
-      amount: 5500.00,
-      paidAmount: 1500.00,
-      currency: 'ريال',
-      dueDate: DateTime.now().add(const Duration(days: 15)),
-      createdDate: DateTime.now().subtract(const Duration(days: 10)),
-      status: DebtStatus.pending,
-      note: 'فاتورة #1234',
-    ),
-    Debt(
-      id: 2,
-      customerName: 'شركة النور للتجارة',
-      amount: 12500.00,
-      paidAmount: 0,
-      currency: 'ريال',
-      dueDate: DateTime.now().subtract(const Duration(days: 3)),
-      createdDate: DateTime.now().subtract(const Duration(days: 30)),
-      status: DebtStatus.overdue,
-      note: 'فاتورة #1198',
-    ),
-    Debt(
-      id: 3,
-      customerName: 'فهد سالم القحطاني',
-      amount: 3200.00,
-      paidAmount: 3200.00,
-      currency: 'ريال',
-      dueDate: DateTime.now().add(const Duration(days: 5)),
-      createdDate: DateTime.now().subtract(const Duration(days: 20)),
-      status: DebtStatus.paid,
-      note: 'فاتورة #1210',
-    ),
-  ];
-
-  final List<Debt> _payableDebts = [
-    Debt(
-      id: 4,
-      supplierName: 'مورد الأجهزة الإلكترونية',
-      amount: 25000.00,
-      paidAmount: 10000.00,
-      currency: 'ريال',
-      dueDate: DateTime.now().add(const Duration(days: 7)),
-      createdDate: DateTime.now().subtract(const Duration(days: 15)),
-      status: DebtStatus.pending,
-      note: 'شراء أجهزة',
-    ),
-    Debt(
-      id: 5,
-      supplierName: 'شركة المواد الغذائية',
-      amount: 8500.00,
-      paidAmount: 0,
-      currency: 'ريال',
-      dueDate: DateTime.now().add(const Duration(days: 20)),
-      createdDate: DateTime.now().subtract(const Duration(days: 5)),
-      status: DebtStatus.pending,
-      note: '',
-    ),
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final isSmallScreen = MediaQuery.of(context).size.width < 800;
+    final controller = Get.put(DebtsController());
+    final isSmallScreen = MediaQuery.of(context).size.width < 900;
 
     return Scaffold(
       backgroundColor: AppPalette.background,
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) => [
-          _buildSliverAppBar(),
-          _buildTabBar(),
-          _buildSummaryCards(),
-          _buildFilterBar(),
+      body: Row(
+        children: [
+          // Main List
+          Expanded(
+            flex: isSmallScreen ? 1 : 3,
+            child: _buildDebtsList(controller),
+          ),
+          // Details Panel (Desktop only)
+          if (!isSmallScreen)
+            Expanded(
+              flex: 2,
+              child: _buildDetailsPanel(controller),
+            ),
         ],
-        body: _buildBody(),
-      ),
-      floatingActionButton: AppFAB(
-        label: 'تسجيل دفع',
-        icon: Icons.payment_rounded,
-        onPressed: () => _showPaymentDialog(),
       ),
     );
   }
 
-  Widget _buildSliverAppBar() {
-    return SliverAppBar(
-      expandedHeight: 80,
-      floating: false,
-      pinned: true,
-      backgroundColor: AppPalette.surface,
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
+  Widget _buildDebtsList(DebtsController controller) {
+    return Column(
+      children: [
+        // Header
+        Container(
           padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppPalette.surface,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -139,895 +75,826 @@ class _DebtsPageState extends State<DebtsPage> with SingleTickerProviderStateMix
                       color: AppPalette.textPrimary,
                     ),
                   ),
-                  Row(
-                    children: [
-                      AppSecondaryButton(
-                        text: 'تقرير',
-                        icon: Icons.assessment_rounded,
-                        onPressed: () {},
-                      ),
-                    ],
-                  ),
+                  Obx(() => Text(
+                    '${controller.customersWithDebts.length} عميل مدين',
+                    style: GoogleFonts.cairo(
+                      fontSize: 14,
+                      color: AppPalette.textSecondary,
+                    ),
+                  )),
                 ],
               ),
+              const SizedBox(height: 16),
+              // Search Bar
+              AppTextField(
+                hintText: 'البحث عن عميل...',
+                prefixIconData: Icons.search_rounded,
+                onChanged: (value) => controller.searchCustomers(value),
+              ),
+              const SizedBox(height: 12),
+              // Filter Chips
+              Obx(() => SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildFilterChip(controller, 'الكل', 'all'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip(controller, 'متأخرات', 'overdue'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip(controller, 'مستحق قريباً', 'dueSoon'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip(controller, 'ديون كبيرة', 'large'),
+                  ],
+                ),
+              )),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildTabBar() {
-    return SliverPersistentHeader(
-      pinned: true,
-      delegate: _TabBarDelegate(
-        tabController: _tabController,
-        receivableCount: _receivableDebts.length,
-        payableCount: _payableDebts.length,
-      ),
-    );
-  }
-
-  Widget _buildSummaryCards() {
-    final totalReceivable = _calculateTotalDebt(_receivableDebts);
-    final totalPayable = _calculateTotalDebt(_payableDebts);
-    final overdueCount = _receivableDebts.where((d) => d.status == DebtStatus.overdue).length;
-
-    return SliverToBoxAdapter(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Expanded(
-              child: _buildSummaryCard(
-                title: 'ديون مستحقة لك',
-                amount: totalReceivable,
-                currency: 'ريال',
-                icon: Icons.arrow_downward_rounded,
-                color: AppPalette.income,
-                subtitle: '${_receivableDebts.where((d) => d.status != DebtStatus.paid).length} دين',
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildSummaryCard(
-                title: 'ديون عليك',
-                amount: totalPayable,
-                currency: 'ريال',
-                icon: Icons.arrow_upward_rounded,
-                color: AppPalette.expense,
-                subtitle: '${_payableDebts.where((d) => d.status != DebtStatus.paid).length} دين',
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildSummaryCard(
-                title: 'متأخرات',
-                amount: overdueCount.toDouble(),
-                currency: overdueCount == 1 ? 'دين' : 'ديون',
-                icon: Icons.warning_rounded,
-                color: AppPalette.warning,
-                subtitle: 'تجاوزت الموعد',
-                isCount: true,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSummaryCard({
-    required String title,
-    required double amount,
-    required String currency,
-    required IconData icon,
-    required Color color,
-    required String subtitle,
-    bool isCount = false,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        // Statistics Cards
+        Container(
+          padding: const EdgeInsets.all(16),
+          child: Obx(() => Row(
             children: [
-              Icon(icon, color: color, size: 24),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
+              Expanded(
+                child: _buildStatCard(
+                  'إجمالي الديون',
+                  controller.totalDebts.value,
+                  AppPalette.expense,
+                  Icons.account_balance_wallet_rounded,
                 ),
-                child: Text(
-                  subtitle,
-                  style: GoogleFonts.cairo(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                    color: color,
-                  ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  'عملاء مدينين',
+                  controller.customersWithDebts.length.toDouble(),
+                  AppPalette.warning,
+                  Icons.people_rounded,
+                  isCount: true,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  'سداد اليوم',
+                  controller.todayPayments.value,
+                  AppPalette.income,
+                  Icons.payment_rounded,
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            isCount ? '${amount.toInt()}' : '${_formatCurrency(amount)} $currency',
-            style: GoogleFonts.cairo(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: GoogleFonts.cairo(
-              fontSize: 12,
-              color: AppPalette.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+          )),
+        ),
+        // Customers List
+        Expanded(
+          child: Obx(() {
+            if (controller.isLoading.value) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-  Widget _buildFilterBar() {
-    return SliverPersistentHeader(
-      pinned: true,
-      delegate: _FilterBarDelegate(
-        searchController: _searchController,
-        selectedFilter: _selectedFilter,
-        onFilterChanged: (filter) => setState(() => _selectedFilter = filter),
-        onSearchChanged: (_) => setState(() {}),
-      ),
-    );
-  }
+            if (controller.filteredCustomers.isEmpty) {
+              return _buildEmptyState();
+            }
 
-  Widget _buildBody() {
-    return TabBarView(
-      controller: _tabController,
-      children: [
-        _buildDebtsList(_receivableDebts, isReceivable: true),
-        _buildDebtsList(_payableDebts, isReceivable: false),
+            return ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: controller.filteredCustomers.length,
+              itemBuilder: (context, index) {
+                final customer = controller.filteredCustomers[index];
+                return _buildCustomerDebtCard(controller, customer);
+              },
+            );
+          }),
+        ),
       ],
     );
   }
 
-  Widget _buildDebtsList(List<Debt> debts, {required bool isReceivable}) {
-    final filteredDebts = _getFilteredDebts(debts);
-
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (filteredDebts.isEmpty) {
-      return _buildEmptyState(isReceivable);
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: filteredDebts.length,
-      itemBuilder: (context, index) => _buildDebtCard(filteredDebts[index], isReceivable),
-    );
-  }
-
-  Widget _buildEmptyState(bool isReceivable) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            isReceivable ? Icons.sentiment_satisfied_rounded : Icons.check_circle_outline_rounded,
-            size: 80,
-            color: AppPalette.income,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            isReceivable ? 'لا توجد ديون مستحقة لك' : 'لا توجد ديون عليك',
-            style: GoogleFonts.cairo(fontSize: 18, color: AppPalette.textSecondary),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'أحسنت! جميع الديون مسددة',
-            style: GoogleFonts.cairo(fontSize: 14, color: AppPalette.textHint),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDebtCard(Debt debt, bool isReceivable) {
-    final remainingAmount = debt.amount - debt.paidAmount;
-    final progress = debt.paidAmount / debt.amount;
-    final isOverdue = debt.dueDate.isBefore(DateTime.now()) && debt.status != DebtStatus.paid;
-    final daysUntilDue = debt.dueDate.difference(DateTime.now()).inDays;
-
-    Color statusColor;
-    String statusText;
-    IconData statusIcon;
-
-    switch (debt.status) {
-      case DebtStatus.paid:
-        statusColor = AppPalette.income;
-        statusText = 'مسدد';
-        statusIcon = Icons.check_circle_rounded;
-        break;
-      case DebtStatus.overdue:
-        statusColor = AppPalette.expense;
-        statusText = 'متأخر';
-        statusIcon = Icons.error_rounded;
-        break;
-      case DebtStatus.pending:
-        statusColor = daysUntilDue <= 7 ? AppPalette.warning : AppPalette.info;
-        statusText = daysUntilDue <= 0 ? 'مستحق اليوم' : '$daysUntilDue يوم';
-        statusIcon = Icons.schedule_rounded;
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: AppPalette.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isOverdue
-              ? AppPalette.expense.withOpacity(0.5)
-              : debt.status == DebtStatus.paid
-                  ? AppPalette.income.withOpacity(0.5)
-                  : AppPalette.outline.withOpacity(0.5),
+  Widget _buildFilterChip(DebtsController controller, String label, String value) {
+    return Obx(() {
+      final isSelected = controller.selectedFilter.value == value;
+      return FilterChip(
+        label: Text(label),
+        selected: isSelected,
+        onSelected: (_) => controller.setFilter(value),
+        selectedColor: AppPalette.primaryContainer,
+        labelStyle: GoogleFonts.cairo(
+          fontSize: 13,
+          color: isSelected ? AppPalette.primary : AppPalette.textSecondary,
         ),
+      );
+    });
+  }
+
+  Widget _buildStatCard(String title, double value, Color color, IconData icon,
+      {bool isCount = false}) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _showDebtDetails(debt),
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
-                Row(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: isReceivable
-                            ? AppPalette.incomeContainer
-                            : AppPalette.expenseContainer,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        isReceivable ? Icons.person_rounded : Icons.store_rounded,
-                        color: isReceivable ? AppPalette.income : AppPalette.expense,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  isReceivable ? (debt.customerName ?? 'غير محدد') : (debt.supplierName ?? 'غير محدد'),
-                                  style: GoogleFonts.cairo(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: statusColor.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(statusIcon, size: 14, color: statusColor),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      statusText,
-                                      style: GoogleFonts.cairo(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: statusColor,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            debt.note.isNotEmpty ? debt.note : 'فاتورة #${debt.id}',
-                            style: GoogleFonts.cairo(
-                              fontSize: 12,
-                              color: AppPalette.textHint,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Amount details
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppPalette.surfaceVariant,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('المبلغ الإجمالي', style: GoogleFonts.cairo(fontSize: 13)),
-                          Text(
-                            '${debt.amount.toStringAsFixed(2)} ${debt.currency}',
-                            style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('المسدد', style: GoogleFonts.cairo(fontSize: 13, color: AppPalette.income)),
-                          Text(
-                            '${debt.paidAmount.toStringAsFixed(2)} ${debt.currency}',
-                            style: GoogleFonts.cairo(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppPalette.income,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      // Progress bar
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: progress,
-                          backgroundColor: AppPalette.outline.withOpacity(0.3),
-                          valueColor: AlwaysStoppedAnimation(
-                            debt.status == DebtStatus.paid
-                                ? AppPalette.income
-                                : AppPalette.primary,
-                          ),
-                          minHeight: 8,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'المتبقي',
-                            style: GoogleFonts.cairo(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: AppPalette.textPrimary,
-                            ),
-                          ),
-                          Text(
-                            '${remainingAmount.toStringAsFixed(2)} ${debt.currency}',
-                            style: GoogleFonts.cairo(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: debt.status == DebtStatus.paid
-                                  ? AppPalette.income
-                                  : AppPalette.expense,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                Text(
+                  isCount ? value.toInt().toString() : _formatCurrency(value),
+                  style: GoogleFonts.cairo(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: color,
                   ),
                 ),
-                const SizedBox(height: 16),
-
-                // Due date and actions
-                Row(
-                  children: [
-                    Icon(Icons.calendar_today_rounded, size: 16, color: AppPalette.textHint),
-                    const SizedBox(width: 8),
-                    Text(
-                      'تاريخ الاستحقاق: ${_formatDate(debt.dueDate)}',
-                      style: GoogleFonts.cairo(
-                        fontSize: 12,
-                        color: isOverdue ? AppPalette.expense : AppPalette.textSecondary,
-                      ),
-                    ),
-                    const Spacer(),
-                    if (debt.status != DebtStatus.paid)
-                      AppPrimaryButton(
-                        text: isReceivable ? 'استلام دفع' : 'تسديد',
-                        icon: Icons.payment_rounded,
-                        onPressed: () => _showPaymentDialogForDebt(debt),
-                      ),
-                  ],
+                Text(
+                  title,
+                  style: GoogleFonts.cairo(
+                    fontSize: 12,
+                    color: AppPalette.textSecondary,
+                  ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.check_circle_outline_rounded,
+            size: 80,
+            color: AppPalette.income.withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'لا توجد ديون',
+            style: GoogleFonts.cairo(
+              fontSize: 18,
+              color: AppPalette.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'جميع العملاء مسددون',
+            style: GoogleFonts.cairo(
+              fontSize: 14,
+              color: AppPalette.textHint,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomerDebtCard(DebtsController controller, Customer customer) {
+    return Obx(() {
+      final isSelected = controller.selectedCustomer.value?.id == customer.id;
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: AppPalette.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? AppPalette.primary : AppPalette.outline.withValues(alpha: 0.5),
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppPalette.primary.withValues(alpha: 0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => controller.selectCustomer(customer),
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  // Avatar
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppPalette.expenseContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.person_rounded,
+                      color: AppPalette.expense,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          customer.name,
+                          style: GoogleFonts.cairo(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            if (customer.phone.isNotEmpty) ...[
+                              Icon(
+                                Icons.phone_rounded,
+                                size: 14,
+                                color: AppPalette.textHint,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                customer.phone,
+                                style: GoogleFonts.cairo(
+                                  fontSize: 12,
+                                  color: AppPalette.textSecondary,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                            ],
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              size: 14,
+                              color: AppPalette.expense,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              customer.balanceStatus,
+                              style: GoogleFonts.cairo(
+                                fontSize: 12,
+                                color: AppPalette.expense,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Balance
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppPalette.expenseContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      customer.formattedBalance,
+                      style: GoogleFonts.cairo(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppPalette.expense,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-      ),
-    );
+      );
+    });
   }
 
-  double _calculateTotalDebt(List<Debt> debts) {
-    return debts
-        .where((d) => d.status != DebtStatus.paid)
-        .fold<double>(0, (sum, d) => sum + (d.amount - d.paidAmount));
-  }
+  Widget _buildDetailsPanel(DebtsController controller) {
+    return Obx(() {
+      final customer = controller.selectedCustomer.value;
 
-  List<Debt> _getFilteredDebts(List<Debt> debts) {
-    var filtered = debts;
-    final search = _searchController.text.toLowerCase();
-
-    if (search.isNotEmpty) {
-      filtered = filtered.where((d) =>
-          (d.customerName?.toLowerCase().contains(search) ?? false) ||
-          (d.supplierName?.toLowerCase().contains(search) ?? false)).toList();
-    }
-
-    switch (_selectedFilter) {
-      case 'overdue':
-        filtered = filtered.where((d) => d.status == DebtStatus.overdue).toList();
-        break;
-      case 'due-soon':
-        filtered = filtered.where((d) {
-          final days = d.dueDate.difference(DateTime.now()).inDays;
-          return d.status != DebtStatus.paid && days <= 7 && days > 0;
-        }).toList();
-        break;
-      case 'paid':
-        filtered = filtered.where((d) => d.status == DebtStatus.paid).toList();
-        break;
-    }
-
-    return filtered;
-  }
-
-  String _formatCurrency(double value) {
-    if (value >= 1000000) {
-      return '${(value / 1000000).toStringAsFixed(1)}M';
-    } else if (value >= 1000) {
-      return '${(value / 1000).toStringAsFixed(1)}K';
-    }
-    return value.toStringAsFixed(0);
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
-  }
-
-  void _showPaymentDialog() {
-    // Show general payment dialog
-  }
-
-  void _showPaymentDialogForDebt(Debt debt) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _PaymentSheet(
-        debt: debt,
-        onPaid: (amount) {
-          setState(() {
-            final debts = debt.customerName != null ? _receivableDebts : _payableDebts;
-            final index = debts.indexWhere((d) => d.id == debt.id);
-            if (index != -1) {
-              final newPaidAmount = debts[index].paidAmount + amount;
-              debts[index] = Debt(
-                id: debt.id,
-                customerName: debt.customerName,
-                supplierName: debt.supplierName,
-                amount: debt.amount,
-                paidAmount: newPaidAmount,
-                currency: debt.currency,
-                dueDate: debt.dueDate,
-                createdDate: debt.createdDate,
-                status: newPaidAmount >= debt.amount ? DebtStatus.paid : debt.status,
-                note: debt.note,
-              );
-            }
-          });
-        },
-      ),
-    );
-  }
-
-  void _showDebtDetails(Debt debt) {
-    // Show debt details
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    _tabController.dispose();
-    super.dispose();
-  }
-}
-
-/// Tab Bar Delegate
-class _TabBarDelegate extends SliverPersistentHeaderDelegate {
-  final TabController tabController;
-  final int receivableCount;
-  final int payableCount;
-
-  _TabBarDelegate({
-    required this.tabController,
-    required this.receivableCount,
-    required this.payableCount,
-  });
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: AppPalette.surface,
-      child: TabBar(
-        controller: tabController,
-        indicatorColor: AppPalette.primary,
-        indicatorWeight: 3,
-        labelColor: AppPalette.primary,
-        unselectedLabelColor: AppPalette.textSecondary,
-        labelStyle: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w600),
-        tabs: [
-          Tab(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+      if (customer == null) {
+        return Container(
+          color: AppPalette.surface,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.arrow_downward_rounded, size: 18),
-                const SizedBox(width: 8),
-                Text('ديون لك ($receivableCount)'),
-              ],
-            ),
-          ),
-          Tab(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.arrow_upward_rounded, size: 18),
-                const SizedBox(width: 8),
-                Text('ديون عليك ($payableCount)'),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  double get maxExtent => 48;
-
-  @override
-  double get minExtent => 48;
-
-  @override
-  bool shouldRebuild(covariant _TabBarDelegate oldDelegate) {
-    return receivableCount != oldDelegate.receivableCount ||
-        payableCount != oldDelegate.payableCount;
-  }
-}
-
-/// Filter Bar Delegate
-class _FilterBarDelegate extends SliverPersistentHeaderDelegate {
-  final TextEditingController searchController;
-  final String selectedFilter;
-  final Function(String) onFilterChanged;
-  final Function(String) onSearchChanged;
-
-  _FilterBarDelegate({
-    required this.searchController,
-    required this.selectedFilter,
-    required this.onFilterChanged,
-    required this.onSearchChanged,
-  });
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: AppPalette.surface,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: AppTextField(
-                  controller: searchController,
-                  hint: 'البحث...',
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  onChanged: onSearchChanged,
+                Icon(
+                  Icons.info_outline_rounded,
+                  size: 64,
+                  color: AppPalette.textHint.withValues(alpha: 0.5),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildFilterChip('الكل', 'all'),
-                const SizedBox(width: 8),
-                _buildFilterChip('متأخرات', 'overdue'),
-                const SizedBox(width: 8),
-                _buildFilterChip('مستحق قريباً', 'due-soon'),
-                const SizedBox(width: 8),
-                _buildFilterChip('مسدد', 'paid'),
+                const SizedBox(height: 16),
+                Text(
+                  'اختر عميل لعرض تفاصيل الدين',
+                  style: GoogleFonts.cairo(
+                    fontSize: 16,
+                    color: AppPalette.textSecondary,
+                  ),
+                ),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
+        );
+      }
 
-  Widget _buildFilterChip(String label, String value) {
-    final isSelected = selectedFilter == value;
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (_) => onFilterChanged(value),
-      selectedColor: AppPalette.primaryContainer,
-      labelStyle: GoogleFonts.cairo(
-        fontSize: 12,
-        color: isSelected ? AppPalette.primary : AppPalette.textSecondary,
-      ),
-    );
-  }
-
-  @override
-  double get maxExtent => 110;
-
-  @override
-  double get minExtent => 110;
-
-  @override
-  bool shouldRebuild(covariant _FilterBarDelegate oldDelegate) {
-    return selectedFilter != oldDelegate.selectedFilter;
-  }
-}
-
-/// Payment Bottom Sheet
-class _PaymentSheet extends StatefulWidget {
-  final Debt debt;
-  final Function(double) onPaid;
-
-  const _PaymentSheet({required this.debt, required this.onPaid});
-
-  @override
-  State<_PaymentSheet> createState() => _PaymentSheetState();
-}
-
-class _PaymentSheetState extends State<_PaymentSheet> {
-  final _amountController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
-  String _paymentMethod = 'cash';
-
-  @override
-  void initState() {
-    super.initState();
-    final remaining = widget.debt.amount - widget.debt.paidAmount;
-    _amountController.text = remaining.toStringAsFixed(2);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final remaining = widget.debt.amount - widget.debt.paidAmount;
-    final isReceivable = widget.debt.customerName != null;
-
-    return Container(
-      decoration: const BoxDecoration(
+      return Container(
         color: AppPalette.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppPalette.outline,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                isReceivable ? 'استلام دفع' : 'تسديد دين',
-                style: GoogleFonts.cairo(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                isReceivable ? widget.debt.customerName! : widget.debt.supplierName!,
-                style: GoogleFonts.cairo(
-                  fontSize: 14,
-                  color: AppPalette.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Amount info
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppPalette.surfaceVariant,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('المبلغ المتبقي', style: GoogleFonts.cairo()),
-                    Text(
-                      '${remaining.toStringAsFixed(2)} ${widget.debt.currency}',
-                      style: GoogleFonts.cairo(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppPalette.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              AppCurrencyField(
-                controller: _amountController,
-                label: 'مبلغ الدفع',
-                currency: widget.debt.currency,
-                validator: (value) {
-                  if (value?.isEmpty == true) return 'هذا الحقل مطلوب';
-                  final amount = double.tryParse(value!);
-                  if (amount == null) return 'أدخل رقم صحيح';
-                  if (amount > remaining) return 'المبلغ أكبر من المتبقي';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Payment method
-              Text(
-                'طريقة الدفع',
-                style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(height: 8),
+              // Header
               Row(
                 children: [
-                  Expanded(
-                    child: _buildPaymentMethod('cash', 'نقدي', Icons.payments_rounded),
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: AppPalette.expenseContainer,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      Icons.person_rounded,
+                      color: AppPalette.expense,
+                      size: 28,
+                    ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 16),
                   Expanded(
-                    child: _buildPaymentMethod('transfer', 'تحويل', Icons.account_balance_rounded),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          customer.name,
+                          style: GoogleFonts.cairo(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'عميل مدين',
+                          style: GoogleFonts.cairo(
+                            fontSize: 14,
+                            color: AppPalette.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => controller.clearSelection(),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
 
-              AppPrimaryButton(
-                text: 'تأكيد الدفع',
-                icon: Icons.check_rounded,
-                isFullWidth: true,
-                onPressed: _processPayment,
+              // Balance Card
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppPalette.expense, AppPalette.expense.withValues(alpha: 0.8)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'إجمالي المديونية',
+                      style: GoogleFonts.cairo(
+                        fontSize: 14,
+                        color: Colors.white.withValues(alpha: 0.9),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      customer.formattedBalance,
+                      style: GoogleFonts.cairo(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'رصيد مستحق',
+                      style: GoogleFonts.cairo(
+                        fontSize: 14,
+                        color: Colors.white.withValues(alpha: 0.9),
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(height: 24),
+
+              // Contact Info
+              Text(
+                'بيانات الاتصال',
+                style: GoogleFonts.cairo(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _buildInfoRow(Icons.phone_rounded, 'الهاتف', customer.phone, 'غير محدد'),
+              _buildInfoRow(Icons.location_on_rounded, 'العنوان', customer.address, 'غير محدد'),
+              _buildInfoRow(Icons.description_rounded, 'ملاحظات', customer.description, 'لا توجد'),
+              const SizedBox(height: 24),
+
+              // Quick Actions
+              Text(
+                'إجراءات سريعة',
+                style: GoogleFonts.cairo(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: AppSecondaryButton(
+                      text: 'سداد',
+                      icon: Icons.payment_rounded,
+                      onPressed: () => _showPaymentDialog(Get.context!, controller, customer),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: AppSecondaryButton(
+                      text: 'كشف الحساب',
+                      icon: Icons.receipt_long_rounded,
+                      onPressed: () => Get.to(() => CustomerReportPage(customer: customer)),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Account Statement Summary
+              Text(
+                'ملخص كشف الحساب',
+                style: GoogleFonts.cairo(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Obx(() => Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppPalette.background,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    _buildStatementRow(
+                      'إجمالي الفواتير',
+                      controller.statementTotalInvoices.value,
+                      AppPalette.expense,
+                    ),
+                    const Divider(height: 16),
+                    _buildStatementRow(
+                      'إجمالي السداد',
+                      controller.statementTotalPayments.value,
+                      AppPalette.income,
+                    ),
+                    const Divider(height: 16),
+                    _buildStatementRow(
+                      'إجمالي المرتجعات',
+                      controller.statementTotalReturns.value,
+                      AppPalette.warning,
+                    ),
+                    const Divider(height: 16),
+                    _buildStatementRow(
+                      'الرصيد الحالي',
+                      controller.statementBalance.value,
+                      AppPalette.expense,
+                      isBold: true,
+                    ),
+                  ],
+                ),
+              )),
+              const SizedBox(height: 24),
+
+              // Recent Transactions
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'آخر الحركات',
+                    style: GoogleFonts.cairo(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => Get.to(() => CustomerReportPage(customer: customer)),
+                    child: Text('عرض الكل', style: GoogleFonts.cairo()),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Obx(() {
+                if (controller.isLoadingTransactions.value) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (controller.customerTransactions.isEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: AppPalette.background,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'لا توجد حركات',
+                        style: GoogleFonts.cairo(
+                          color: AppPalette.textSecondary,
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
+                return Column(
+                  children: controller.customerTransactions.take(5).map((transaction) {
+                    return _buildTransactionItem(transaction);
+                  }).toList(),
+                );
+              }),
             ],
           ),
         ),
+      );
+    });
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value, String emptyText) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppPalette.textHint),
+          const SizedBox(width: 12),
+          Text(
+            '$label:',
+            style: GoogleFonts.cairo(
+              fontSize: 13,
+              color: AppPalette.textSecondary,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value.isNotEmpty ? value : emptyText,
+              style: GoogleFonts.cairo(
+                fontSize: 14,
+                color: value.isNotEmpty ? AppPalette.textPrimary : AppPalette.textHint,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildPaymentMethod(String value, String label, IconData icon) {
-    final isSelected = _paymentMethod == value;
-    return InkWell(
-      onTap: () => setState(() => _paymentMethod = value),
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected ? AppPalette.primaryContainer : AppPalette.surfaceVariant,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? AppPalette.primary : AppPalette.outline,
-            width: isSelected ? 2 : 1,
+  Widget _buildStatementRow(String label, double value, Color color, {bool isBold = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.cairo(
+            fontSize: isBold ? 14 : 13,
+            fontWeight: isBold ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
-        child: Column(
-          children: [
-            Icon(icon, color: isSelected ? AppPalette.primary : AppPalette.textSecondary),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: GoogleFonts.cairo(
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                color: isSelected ? AppPalette.primary : AppPalette.textSecondary,
-              ),
+        Text(
+          _formatCurrency(value),
+          style: GoogleFonts.cairo(
+            fontSize: isBold ? 16 : 14,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTransactionItem(CustomerTransaction transaction) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppPalette.background,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: transaction.color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(transaction.icon, color: transaction.color, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  transaction.typeDisplayName,
+                  style: GoogleFonts.cairo(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  _formatDate(transaction.createdAt),
+                  style: GoogleFonts.cairo(
+                    fontSize: 11,
+                    color: AppPalette.textHint,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '${transaction.increasesDebt ? '+' : '-'} ${_formatCurrency(transaction.amount)}',
+            style: GoogleFonts.cairo(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: transaction.color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatCurrency(double value) {
+    return '${value.toStringAsFixed(2)} ر.س';
+  }
+
+  String _formatDate(DateTime date) {
+    return DateFormat('dd/MM/yyyy').format(date);
+  }
+
+  void _showPaymentDialog(BuildContext context, DebtsController controller, Customer customer) {
+    final amountController = TextEditingController();
+    final descriptionController = TextEditingController();
+    String selectedPaymentMethod = 'cash';
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text('تسجيل سداد', style: GoogleFonts.cairo()),
+          content: SizedBox(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Current Balance
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppPalette.expenseContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('الرصيد المستحق:', style: GoogleFonts.cairo()),
+                      Text(
+                        customer.formattedBalance,
+                        style: GoogleFonts.cairo(
+                          fontWeight: FontWeight.bold,
+                          color: AppPalette.expense,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                AppCurrencyField(
+                  controller: amountController,
+                  hintText: 'مبلغ السداد',
+                ),
+                const SizedBox(height: 12),
+                // Payment Method
+                Row(
+                  children: [
+                    Text('طريقة الدفع:', style: GoogleFonts.cairo()),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Radio<String>(
+                            value: 'cash',
+                            groupValue: selectedPaymentMethod,
+                            onChanged: (v) => setState(() => selectedPaymentMethod = v!),
+                          ),
+                          Text('نقدي', style: GoogleFonts.cairo(fontSize: 13)),
+                          const SizedBox(width: 12),
+                          Radio<String>(
+                            value: 'card',
+                            groupValue: selectedPaymentMethod,
+                            onChanged: (v) => setState(() => selectedPaymentMethod = v!),
+                          ),
+                          Text('بطاقة', style: GoogleFonts.cairo(fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                AppTextField(
+                  controller: descriptionController,
+                  hintText: 'ملاحظات',
+                  prefixIconData: Icons.description_rounded,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('إلغاء', style: GoogleFonts.cairo()),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final amount = double.tryParse(amountController.text);
+                if (amount == null || amount <= 0) {
+                  Get.snackbar(
+                    'خطأ',
+                    'يرجى إدخال مبلغ صحيح',
+                    backgroundColor: AppPalette.expenseContainer,
+                    colorText: AppPalette.expense,
+                  );
+                  return;
+                }
+
+                if (amount > customer.balance) {
+                  Get.snackbar(
+                    'خطأ',
+                    'المبلغ أكبر من الرصيد المستحق',
+                    backgroundColor: AppPalette.expenseContainer,
+                    colorText: AppPalette.expense,
+                  );
+                  return;
+                }
+
+                final result = await controller.recordPayment(
+                  customer,
+                  amount,
+                  selectedPaymentMethod,
+                  descriptionController.text,
+                );
+
+                Navigator.pop(context);
+
+                if (result.isSuccess) {
+                  Get.snackbar(
+                    'تم',
+                    'تم تسجيل السداد بنجاح',
+                    backgroundColor: AppPalette.incomeContainer,
+                    colorText: AppPalette.income,
+                  );
+                } else {
+                  Get.snackbar(
+                    'خطأ',
+                    result.errorMessage ?? 'فشل في تسجيل السداد',
+                    backgroundColor: AppPalette.expenseContainer,
+                    colorText: AppPalette.expense,
+                  );
+                }
+              },
+              child: Text('تأكيد', style: GoogleFonts.cairo()),
             ),
           ],
         ),
       ),
     );
   }
-
-  void _processPayment() {
-    if (_formKey.currentState!.validate()) {
-      widget.onPaid(double.parse(_amountController.text));
-      Navigator.pop(context);
-    }
-  }
-
-  @override
-  void dispose() {
-    _amountController.dispose();
-    super.dispose();
-  }
-}
-
-/// Debt Status Enum
-enum DebtStatus {
-  pending,
-  overdue,
-  paid,
-}
-
-/// Debt Model
-class Debt {
-  final int id;
-  final String? customerName;
-  final String? supplierName;
-  final double amount;
-  final double paidAmount;
-  final String currency;
-  final DateTime dueDate;
-  final DateTime createdDate;
-  final DebtStatus status;
-  final String note;
-
-  Debt({
-    required this.id,
-    this.customerName,
-    this.supplierName,
-    required this.amount,
-    required this.paidAmount,
-    required this.currency,
-    required this.dueDate,
-    required this.createdDate,
-    required this.status,
-    required this.note,
-  });
 }
