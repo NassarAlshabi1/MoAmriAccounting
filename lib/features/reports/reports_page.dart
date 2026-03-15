@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:moamri_accounting/shared/theme/app_palette.dart';
+import 'package:moamri_accounting/shared/widgets/buttons.dart';
 import 'package:moamri_accounting/database/my_database.dart';
 
 /// Reports Page
@@ -20,6 +21,15 @@ class ReportsPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppPalette.background,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _exportReport(controller),
+        backgroundColor: AppPalette.primary,
+        icon: const Icon(Icons.download_rounded, color: Colors.white),
+        label: Text(
+          'تصدير',
+          style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+      ),
       body: Column(
         children: [
           // Header
@@ -353,6 +363,64 @@ class ReportsPage extends StatelessWidget {
 
   void _showDebtsReport(ReportsController controller) {
     Get.to(() => DebtsReportPage(controller: controller));
+  }
+
+  void _exportReport(ReportsController controller) {
+    Get.dialog(
+      AlertDialog(
+        title: Text('تصدير التقرير', style: GoogleFonts.cairo()),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.picture_as_pdf_rounded, color: AppPalette.expense),
+              title: Text('تصدير PDF', style: GoogleFonts.cairo()),
+              onTap: () {
+                Navigator.pop(Get.context!);
+                Get.snackbar(
+                  'تصدير PDF',
+                  'جاري تصدير التقرير بصيغة PDF...',
+                  backgroundColor: AppPalette.infoContainer,
+                  colorText: AppPalette.info,
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.table_chart_rounded, color: AppPalette.income),
+              title: Text('تصدير Excel', style: GoogleFonts.cairo()),
+              onTap: () {
+                Navigator.pop(Get.context!);
+                Get.snackbar(
+                  'تصدير Excel',
+                  'جاري تصدير التقرير بصيغة Excel...',
+                  backgroundColor: AppPalette.incomeContainer,
+                  colorText: AppPalette.income,
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.print_rounded, color: AppPalette.primary),
+              title: Text('طباعة', style: GoogleFonts.cairo()),
+              onTap: () {
+                Navigator.pop(Get.context!);
+                Get.snackbar(
+                  'طباعة',
+                  'جاري إعداد التقرير للطباعة...',
+                  backgroundColor: AppPalette.primaryContainer,
+                  colorText: AppPalette.primary,
+                );
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(Get.context!),
+            child: Text('إلغاء', style: GoogleFonts.cairo()),
+          ),
+        ],
+      ),
+    );
   }
 }
 

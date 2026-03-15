@@ -28,6 +28,15 @@ class DebtsPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppPalette.background,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showBulkPaymentDialog(Get.context!, controller),
+        backgroundColor: AppPalette.primary,
+        icon: const Icon(Icons.payment_rounded, color: Colors.white),
+        label: Text(
+          'تسجيل سداد',
+          style: GoogleFonts.cairo(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+      ),
       body: Row(
         children: [
           // Main List
@@ -899,6 +908,44 @@ class DebtsPage extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showBulkPaymentDialog(BuildContext context, DebtsController controller) {
+    // If a customer is selected, show payment dialog for that customer
+    if (controller.selectedCustomer.value != null) {
+      _showPaymentDialog(context, controller, controller.selectedCustomer.value!);
+      return;
+    }
+
+    // Otherwise show a dialog to select a customer first
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('تسجيل سداد', style: GoogleFonts.cairo()),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.info_outline_rounded,
+              size: 48,
+              color: AppPalette.info,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'يرجى اختيار عميل من القائمة أولاً لتسجيل سداد',
+              style: GoogleFonts.cairo(fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('حسناً', style: GoogleFonts.cairo()),
+          ),
+        ],
       ),
     );
   }
