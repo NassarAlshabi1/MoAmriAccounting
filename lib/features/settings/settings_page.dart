@@ -7,64 +7,81 @@ import 'package:moamri_accounting/shared/theme/app_palette.dart';
 import 'package:moamri_accounting/shared/widgets/buttons.dart';
 import 'package:moamri_accounting/shared/widgets/form_fields.dart';
 import 'package:moamri_accounting/services/backup_service.dart';
+import 'package:moamri_accounting/database/my_database.dart';
+import 'package:moamri_accounting/database/entities/store.dart';
+import 'package:moamri_accounting/database/entities/customer.dart';
+import 'package:moamri_accounting/controllers/main_controller.dart';
 
 /// Settings Controller
-///
-/// Manages application settings including company data, printer settings, and backup.
 class SettingsController extends GetxController {
-  // Company Data
-  RxString companyName = 'محل تجريبي'.obs;
-  RxString companyBranch = 'الفرع الرئيسي'.obs;
-  RxString taxNumber = ''.obs;
-  RxString companyPhone = ''.obs;
-  RxString companyAddress = ''.obs;
-  RxnString companyLogoPath = RxnString();
-  
+  // Store Data
+  RxString storeName = ''.obs;
+  RxString storeBranch = ''.obs;
+  RxString storeAddress = ''.obs;
+  RxString storePhone = ''.obs;
+  RxString storeCurrency = 'ر.س'.obs;
+  RxnString storeLogoPath = RxnString();
+
+  // Default Currency Settings
+  RxString defaultCurrency = 'ر.س'.obs;
+  RxList<AppCurrency> availableCurrencies = <AppCurrency>[].obs;
+
   // Printer Settings
-  RxString selectedPrinterType = 'thermal'.obs; // thermal, normal
-  RxString paperSize = '80mm'.obs; // 58mm, 80mm
+  RxString selectedPrinterType = 'thermal'.obs;
+  RxString paperSize = '80mm'.obs;
   RxBool autoPrint = true.obs;
   RxBool printLogo = true.obs;
-  RxBool printTaxNumber = true.obs;
   RxInt printCopies = 1.obs;
-  
+
   // Backup Settings
   RxBool autoBackup = true.obs;
-  RxString backupFrequency = 'daily'.obs; // daily, weekly, monthly
-  RxString backupLocation = 'local'.obs; // local, google_drive
+  RxString backupFrequency = 'daily'.obs;
   Rx<DateTime?> lastBackupDate = Rx(null);
   RxInt backupCount = 0.obs;
-  RxString totalBackupSize = '0 MB'.obs;
-  
+
   // UI State
   RxBool isLoading = false.obs;
   RxBool isSaving = false.obs;
   RxList<BackupInfo> backups = <BackupInfo>[].obs;
-  
+
   final BackupService _backupService = BackupService();
 
   @override
   void onInit() {
     super.onInit();
     _loadSettings();
+    _loadAvailableCurrencies();
     _loadBackupInfo();
   }
 
-  /// Load saved settings
   Future<void> _loadSettings() async {
     isLoading.value = true;
-    // In production, load from SharedPreferences or database
-    await Future.delayed(const Duration(milliseconds: 500));
+    try {
+      final mainController = Get.find<MainController>();
+      if (mainController.storeData.value != null) {
+        final store = mainController.storeData.value!;
+        storeName.value = store.name;
+        storeBranch.value = store.branch ?? '';
+        storeAddress.value = store.address ?? '';
+        storePhone.value = store.phone ?? '';
+        storeCurrency.value = store.currency ?? 'ر.س';
+        defaultCurrency.value = store.currency ?? 'ر.س';
+      }
+    } catch (e) {
+      debugPrint('Error loading settings: $e');
+    }
     isLoading.value = false;
   }
 
-  /// Load backup information
+  void _loadAvailableCurrencies() {
+    availableCurrencies.value = AppCurrency.available;
+  }
+
   Future<void> _loadBackupInfo() async {
     try {
       final backupList = await _backupService.getBackupList();
       backups.value = backupList;
       backupCount.value = backupList.length;
-      totalBackupSize.value = await _backupService.getTotalBackupSize();
       if (backupList.isNotEmpty) {
         lastBackupDate.value = backupList.first.createdAt;
       }
@@ -73,34 +90,42 @@ class SettingsController extends GetxController {
     }
   }
 
-  /// Save company data
-  Future<void> saveCompanyData() async {
+  /// Save store data
+  Future<void> saveStoreData() async {
     isSaving.value = true;
-    // In production, save to SharedPreferences or database
-    await Future.delayed(const Duration(milliseconds: 500));
+    try {
+      final store = Store(
+        name: storeName.value,
+        branch: storeBranch.value,
+        address: storeAddress.value,
+        phone: storePhone.value,
+        currency: storeCurrency.value,
+        updatedDate: DateTime.now().millisecondsSinceEpoch,
+      );
+
+      await MyDatabase.setStoreData(store);
+
+      final mainController = Get.find<MainController>();
+      mainController.storeData.value = store;
+
+      Get.snackbar(
+        'تم الحفظ',
+        'تم حفظ بيانات المتجر بنجاح',
+        backgroundColor: AppPalette.incomeContainer,
+        colorText: AppPalette.income,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'خطأ',
+        'فشل في حفظ البيانات: $e',
+        backgroundColor: AppPalette.expenseContainer,
+        colorText: AppPalette.expense,
+      );
+    }
     isSaving.value = false;
-    Get.snackbar(
-      'تم الحفظ',
-      'تم حفظ بيانات المؤسسة بنجاح',
-      backgroundColor: AppPalette.incomeContainer,
-      colorText: AppPalette.income,
-    );
   }
 
-  /// Save printer settings
-  Future<void> savePrinterSettings() async {
-    isSaving.value = true;
-    await Future.delayed(const Duration(milliseconds: 500));
-    isSaving.value = false;
-    Get.snackbar(
-      'تم الحفظ',
-      'تم حفظ إعدادات الطابعة بنجاح',
-      backgroundColor: AppPalette.incomeContainer,
-      colorText: AppPalette.income,
-    );
-  }
-
-  /// Pick company logo
+  /// Pick store logo
   Future<void> pickLogo() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
@@ -108,9 +133,46 @@ class SettingsController extends GetxController {
       maxWidth: 500,
       maxHeight: 500,
     );
-    
+
     if (pickedFile != null) {
-      companyLogoPath.value = pickedFile.path;
+      storeLogoPath.value = pickedFile.path;
+    }
+  }
+
+  /// Add custom currency
+  Future<void> addCustomCurrency() async {
+    final controller = TextEditingController();
+    final result = await Get.dialog<bool>(
+      AlertDialog(
+        title: Text('إضافة عملة جديدة', style: GoogleFonts.cairo()),
+        content: TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            hintText: 'رمز العملة (مثال: €)',
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: Text('إلغاء', style: GoogleFonts.cairo()),
+          ),
+          ElevatedButton(
+            onPressed: () => Get.back(result: true),
+            child: Text('إضافة', style: GoogleFonts.cairo()),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true && controller.text.isNotEmpty) {
+      // Add to available currencies
+      Get.snackbar(
+        'تم',
+        'تمت إضافة العملة',
+        backgroundColor: AppPalette.incomeContainer,
+        colorText: AppPalette.income,
+      );
     }
   }
 
@@ -162,15 +224,13 @@ class SettingsController extends GetxController {
           ),
           ElevatedButton(
             onPressed: () => Get.back(result: true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppPalette.expense,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppPalette.expense),
             child: Text('استعادة', style: GoogleFonts.cairo(color: Colors.white)),
           ),
         ],
       ),
     );
-    
+
     if (confirmed == true) {
       isSaving.value = true;
       try {
@@ -178,17 +238,9 @@ class SettingsController extends GetxController {
         if (result.success) {
           Get.snackbar(
             'تم',
-            'تم استعادة النسخة الاحتياطية بنجاح. يرجى إعادة تشغيل التطبيق.',
+            'تم استعادة النسخة الاحتياطية بنجاح',
             backgroundColor: AppPalette.incomeContainer,
             colorText: AppPalette.income,
-            duration: const Duration(seconds: 5),
-          );
-        } else {
-          Get.snackbar(
-            'خطأ',
-            result.message,
-            backgroundColor: AppPalette.expenseContainer,
-            colorText: AppPalette.expense,
           );
         }
       } catch (e) {
@@ -219,15 +271,13 @@ class SettingsController extends GetxController {
           ),
           ElevatedButton(
             onPressed: () => Get.back(result: true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppPalette.expense,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppPalette.expense),
             child: Text('حذف', style: GoogleFonts.cairo(color: Colors.white)),
           ),
         ],
       ),
     );
-    
+
     if (confirmed == true) {
       await _backupService.deleteBackup(backupPath);
       await _loadBackupInfo();
@@ -239,44 +289,9 @@ class SettingsController extends GetxController {
       );
     }
   }
-
-  /// Export backup
-  Future<void> exportBackup(String backupPath) async {
-    try {
-      await _backupService.exportBackup(backupPath);
-      Get.snackbar(
-        'تم',
-        'تم تصدير النسخة الاحتياطية',
-        backgroundColor: AppPalette.incomeContainer,
-        colorText: AppPalette.income,
-      );
-    } catch (e) {
-      Get.snackbar(
-        'خطأ',
-        'فشل في تصدير النسخة الاحتياطية',
-        backgroundColor: AppPalette.expenseContainer,
-        colorText: AppPalette.expense,
-      );
-    }
-  }
-
-  /// Save backup settings
-  Future<void> saveBackupSettings() async {
-    isSaving.value = true;
-    await Future.delayed(const Duration(milliseconds: 500));
-    isSaving.value = false;
-    Get.snackbar(
-      'تم الحفظ',
-      'تم حفظ إعدادات النسخ الاحتياطي',
-      backgroundColor: AppPalette.incomeContainer,
-      colorText: AppPalette.income,
-    );
-  }
 }
 
 /// Settings Page
-///
-/// Main settings page with tabs for company, printer, and backup settings.
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
@@ -296,19 +311,14 @@ class SettingsPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
               _buildHeader(),
               const SizedBox(height: 24),
-
-              // Company Data Section
-              _buildCompanySection(controller),
+              _buildStoreSection(controller),
               const SizedBox(height: 24),
-
-              // Printer Settings Section
+              _buildCurrencySection(controller),
+              const SizedBox(height: 24),
               _buildPrinterSection(controller),
               const SizedBox(height: 24),
-
-              // Backup Section
               _buildBackupSection(controller),
             ],
           ),
@@ -323,7 +333,7 @@ class SettingsPage extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppPalette.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppPalette.outline.withOpacity(0.5)),
+        border: Border.all(color: AppPalette.outline.withValues(alpha: 0.5)),
       ),
       child: Row(
         children: [
@@ -334,29 +344,19 @@ class SettingsPage extends StatelessWidget {
               color: AppPalette.primaryContainer,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
-              Icons.settings_rounded,
-              color: AppPalette.primary,
-              size: 24,
-            ),
+            child: const Icon(Icons.settings_rounded, color: AppPalette.primary),
           ),
           const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'الإعدادات والتهيئة',
-                style: GoogleFonts.cairo(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                'الإعدادات',
+                style: GoogleFonts.cairo(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               Text(
-                'تخصيص التطبيق حسب هويتك التجارية',
-                style: GoogleFonts.cairo(
-                  fontSize: 13,
-                  color: AppPalette.textSecondary,
-                ),
+                'إدارة إعدادات المتجر والنظام',
+                style: GoogleFonts.cairo(fontSize: 13, color: AppPalette.textSecondary),
               ),
             ],
           ),
@@ -365,123 +365,237 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildCompanySection(SettingsController controller) {
+  Widget _buildStoreSection(SettingsController controller) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppPalette.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppPalette.outline.withOpacity(0.5)),
+        border: Border.all(color: AppPalette.outline.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.business_rounded, color: AppPalette.primary),
+              const Icon(Icons.store_rounded, color: AppPalette.primary),
               const SizedBox(width: 8),
               Text(
-                'بيانات المؤسسة',
-                style: GoogleFonts.cairo(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
+                'بيانات المتجر',
+                style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.w600),
               ),
             ],
           ),
           const SizedBox(height: 20),
 
-          // Logo Selection
-          Center(
-            child: Column(
-              children: [
-                Obx(() => Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: AppPalette.background,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppPalette.outline.withOpacity(0.5)),
-                    image: controller.companyLogoPath.value != null
-                        ? DecorationImage(
-                            image: FileImage(File(controller.companyLogoPath.value!)),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
-                  ),
-                  child: controller.companyLogoPath.value == null
-                      ? Icon(
-                          Icons.add_photo_alternate_outlined,
-                          size: 40,
-                          color: AppPalette.textHint,
-                        )
-                      : null,
-                )),
-                const SizedBox(height: 8),
-                TextButton.icon(
-                  onPressed: controller.pickLogo,
-                  icon: const Icon(Icons.edit_rounded),
-                  label: Text('تغيير الشعار', style: GoogleFonts.cairo()),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Company Name
+          // Store Name
           AppTextField(
-            initialValue: controller.companyName.value,
-            hintText: 'اسم المحل/المؤسسة',
+            hintText: 'اسم المتجر *',
             prefixIconData: Icons.store_rounded,
-            onChanged: (value) => controller.companyName.value = value,
+            onChanged: (value) => controller.storeName.value = value,
           ),
+          Obx(() => Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              controller.storeName.value.isNotEmpty
+                  ? controller.storeName.value
+                  : 'الاسم الحالي',
+              style: GoogleFonts.cairo(fontSize: 11, color: AppPalette.textHint),
+            ),
+          )),
           const SizedBox(height: 12),
 
-          // Branch Name
+          // Branch
           AppTextField(
-            initialValue: controller.companyBranch.value,
             hintText: 'اسم الفرع',
             prefixIconData: Icons.storefront_rounded,
-            onChanged: (value) => controller.companyBranch.value = value,
+            onChanged: (value) => controller.storeBranch.value = value,
           ),
-          const SizedBox(height: 12),
-
-          // Tax Number
-          AppTextField(
-            initialValue: controller.taxNumber.value,
-            hintText: 'الرقم الضريبي',
-            prefixIconData: Icons.receipt_long_rounded,
-            keyboardType: TextInputType.number,
-            onChanged: (value) => controller.taxNumber.value = value,
-          ),
+          Obx(() => controller.storeBranch.value.isNotEmpty
+              ? Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    'الحالي: ${controller.storeBranch.value}',
+                    style: GoogleFonts.cairo(fontSize: 11, color: AppPalette.textHint),
+                  ),
+                )
+              : const SizedBox()),
           const SizedBox(height: 12),
 
           // Phone
           AppTextField(
-            initialValue: controller.companyPhone.value,
             hintText: 'رقم الهاتف',
             prefixIconData: Icons.phone_rounded,
             keyboardType: TextInputType.phone,
-            onChanged: (value) => controller.companyPhone.value = value,
+            onChanged: (value) => controller.storePhone.value = value,
           ),
           const SizedBox(height: 12),
 
           // Address
           AppTextField(
-            initialValue: controller.companyAddress.value,
             hintText: 'العنوان',
             prefixIconData: Icons.location_on_rounded,
-            onChanged: (value) => controller.companyAddress.value = value,
+            onChanged: (value) => controller.storeAddress.value = value,
           ),
+          const SizedBox(height: 12),
+
+          // Default Currency
+          Text(
+            'العملة الافتراضية',
+            style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 8),
+          Obx(() => Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: AppCurrency.available.map((currency) {
+              final isSelected = controller.storeCurrency.value == currency.symbol ||
+                  controller.storeCurrency.value == currency.code;
+              return ChoiceChip(
+                label: Text('${currency.symbol} ${currency.nameAr}'),
+                selected: isSelected,
+                onSelected: (_) {
+                  controller.storeCurrency.value = currency.symbol;
+                },
+                selectedColor: AppPalette.primaryContainer,
+                labelStyle: GoogleFonts.cairo(
+                  fontSize: 12,
+                  color: isSelected ? AppPalette.primary : AppPalette.textSecondary,
+                ),
+              );
+            }).toList(),
+          )),
           const SizedBox(height: 20),
 
           // Save Button
           Obx(() => AppPrimaryButton(
-            text: 'حفظ البيانات',
+            text: 'حفظ بيانات المتجر',
             icon: Icons.save_rounded,
             isLoading: controller.isSaving.value,
             isFullWidth: true,
-            onPressed: controller.saveCompanyData,
+            onPressed: controller.saveStoreData,
+          )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCurrencySection(SettingsController controller) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppPalette.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppPalette.outline.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.attach_money_rounded, color: AppPalette.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    'العملات',
+                    style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+              TextButton.icon(
+                onPressed: controller.addCustomCurrency,
+                icon: const Icon(Icons.add_rounded),
+                label: Text('إضافة عملة', style: GoogleFonts.cairo()),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppPalette.infoContainer,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline_rounded, color: AppPalette.info, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'يمكنك تعيين عملة مفضلة لكل عميل على حدة عند إضافته',
+                    style: GoogleFonts.cairo(fontSize: 12, color: AppPalette.info),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'العملات المتاحة',
+            style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 8),
+          Obx(() => Column(
+            children: controller.availableCurrencies.map((currency) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppPalette.background,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppPalette.primaryContainer,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Center(
+                        child: Text(
+                          currency.symbol,
+                          style: GoogleFonts.cairo(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppPalette.primary,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            currency.nameAr,
+                            style: GoogleFonts.cairo(fontWeight: FontWeight.w500),
+                          ),
+                          Text(
+                            currency.nameEn,
+                            style: GoogleFonts.cairo(
+                              fontSize: 11,
+                              color: AppPalette.textHint,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      currency.code,
+                      style: GoogleFonts.cairo(
+                        fontSize: 12,
+                        color: AppPalette.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
           )),
         ],
       ),
@@ -494,7 +608,7 @@ class SettingsPage extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppPalette.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppPalette.outline.withOpacity(0.5)),
+        border: Border.all(color: AppPalette.outline.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -504,24 +618,15 @@ class SettingsPage extends StatelessWidget {
               const Icon(Icons.print_rounded, color: AppPalette.primary),
               const SizedBox(width: 8),
               Text(
-                'إعدادات الطابعة',
-                style: GoogleFonts.cairo(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
+                'إعدادات الطباعة',
+                style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.w600),
               ),
             ],
           ),
           const SizedBox(height: 20),
 
           // Printer Type
-          Text(
-            'نوع الطابعة',
-            style: GoogleFonts.cairo(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          Text('نوع الطابعة', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
           Obx(() => Row(
             children: [
@@ -547,13 +652,7 @@ class SettingsPage extends StatelessWidget {
           const SizedBox(height: 16),
 
           // Paper Size
-          Text(
-            'حجم الورق',
-            style: GoogleFonts.cairo(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          Text('حجم الورق', style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
           Obx(() => Row(
             children: [
@@ -578,33 +677,26 @@ class SettingsPage extends StatelessWidget {
           )),
           const SizedBox(height: 16),
 
-          // Toggle Options
+          // Auto Print
           Obx(() => _buildToggleOption(
             'طباعة تلقائية بعد البيع',
             controller.autoPrint.value,
             (value) => controller.autoPrint.value = value,
           )),
           const SizedBox(height: 12),
+
+          // Print Logo
           Obx(() => _buildToggleOption(
             'طباعة الشعار في الفاتورة',
             controller.printLogo.value,
             (value) => controller.printLogo.value = value,
-          )),
-          const SizedBox(height: 12),
-          Obx(() => _buildToggleOption(
-            'طباعة الرقم الضريبي',
-            controller.printTaxNumber.value,
-            (value) => controller.printTaxNumber.value = value,
           )),
           const SizedBox(height: 16),
 
           // Print Copies
           Row(
             children: [
-              Text(
-                'عدد نسخ الطباعة:',
-                style: GoogleFonts.cairo(fontSize: 14),
-              ),
+              Text('عدد نسخ الطباعة:', style: GoogleFonts.cairo(fontSize: 14)),
               const SizedBox(width: 16),
               Obx(() => Row(
                 children: [
@@ -619,10 +711,7 @@ class SettingsPage extends StatelessWidget {
                     alignment: Alignment.center,
                     child: Text(
                       '${controller.printCopies.value}',
-                      style: GoogleFonts.cairo(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ),
                   IconButton(
@@ -635,16 +724,6 @@ class SettingsPage extends StatelessWidget {
               )),
             ],
           ),
-          const SizedBox(height: 20),
-
-          // Save Button
-          Obx(() => AppPrimaryButton(
-            text: 'حفظ الإعدادات',
-            icon: Icons.save_rounded,
-            isLoading: controller.isSaving.value,
-            isFullWidth: true,
-            onPressed: controller.savePrinterSettings,
-          )),
         ],
       ),
     );
@@ -656,7 +735,7 @@ class SettingsPage extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppPalette.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppPalette.outline.withOpacity(0.5)),
+        border: Border.all(color: AppPalette.outline.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -667,10 +746,7 @@ class SettingsPage extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 'النسخ الاحتياطي',
-                style: GoogleFonts.cairo(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -696,123 +772,32 @@ class SettingsPage extends StatelessWidget {
                   Icons.folder_rounded,
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildBackupStat(
-                  'الحجم الكلي',
-                  controller.totalBackupSize.value,
-                  Icons.storage_rounded,
-                ),
-              ),
             ],
           )),
           const SizedBox(height: 20),
 
-          // Auto Backup Toggle
+          // Auto Backup
           Obx(() => _buildToggleOption(
             'نسخ احتياطي تلقائي',
             controller.autoBackup.value,
             (value) => controller.autoBackup.value = value,
           )),
-          const SizedBox(height: 16),
-
-          // Backup Frequency
-          Obx(() => controller.autoBackup.value
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'تكرار النسخ الاحتياطي',
-                      style: GoogleFonts.cairo(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildRadioOption(
-                            'يومي',
-                            'daily',
-                            controller.backupFrequency.value,
-                            (value) => controller.backupFrequency.value = value,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildRadioOption(
-                            'أسبوعي',
-                            'weekly',
-                            controller.backupFrequency.value,
-                            (value) => controller.backupFrequency.value = value,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildRadioOption(
-                            'شهري',
-                            'monthly',
-                            controller.backupFrequency.value,
-                            (value) => controller.backupFrequency.value = value,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                )
-              : const SizedBox.shrink()),
-
-          // Backup Location
-          Text(
-            'مكان الحفظ',
-            style: GoogleFonts.cairo(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Obx(() => Row(
-            children: [
-              Expanded(
-                child: _buildRadioOption(
-                  'على الجهاز',
-                  'local',
-                  controller.backupLocation.value,
-                  (value) => controller.backupLocation.value = value,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildRadioOption(
-                  'Google Drive',
-                  'google_drive',
-                  controller.backupLocation.value,
-                  (value) => controller.backupLocation.value = value,
-                ),
-              ),
-            ],
-          )),
           const SizedBox(height: 20),
 
           // Create Backup Button
           Obx(() => AppPrimaryButton(
-            text: 'إنشاء نسخة احتياطية الآن',
+            text: 'إنشاء نسخة احتياطية',
             icon: Icons.add_circle_rounded,
             isLoading: controller.isSaving.value,
             isFullWidth: true,
             onPressed: controller.createBackup,
           )),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
           // Backup List
           Text(
-            'النسخ الاحتياطية المحفوظة',
-            style: GoogleFonts.cairo(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+            'النسخ المحفوظة',
+            style: GoogleFonts.cairo(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           Obx(() {
@@ -824,26 +809,13 @@ class SettingsPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.backup_outlined,
-                        size: 48,
-                        color: AppPalette.textHint,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'لا توجد نسخ احتياطية',
-                        style: GoogleFonts.cairo(
-                          color: AppPalette.textSecondary,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    'لا توجد نسخ احتياطية',
+                    style: GoogleFonts.cairo(color: AppPalette.textSecondary),
                   ),
                 ),
               );
             }
-
             return Column(
               children: controller.backups.take(5).map((backup) {
                 return _buildBackupItem(controller, backup);
@@ -855,12 +827,7 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildRadioOption(
-    String label,
-    String value,
-    String groupValue,
-    Function(String) onChanged,
-  ) {
+  Widget _buildRadioOption(String label, String value, String groupValue, Function(String) onChanged) {
     final isSelected = value == groupValue;
     return InkWell(
       onTap: () => onChanged(value),
@@ -871,7 +838,7 @@ class SettingsPage extends StatelessWidget {
           color: isSelected ? AppPalette.primaryContainer : AppPalette.background,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? AppPalette.primary : AppPalette.outline.withOpacity(0.5),
+            color: isSelected ? AppPalette.primary : AppPalette.outline.withValues(alpha: 0.5),
           ),
         ),
         child: Center(
@@ -888,11 +855,7 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildToggleOption(
-    String label,
-    bool value,
-    Function(bool) onChanged,
-  ) {
+  Widget _buildToggleOption(String label, bool value, Function(bool) onChanged) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
@@ -924,21 +887,8 @@ class SettingsPage extends StatelessWidget {
         children: [
           Icon(icon, color: AppPalette.primary, size: 20),
           const SizedBox(height: 8),
-          Text(
-            value,
-            style: GoogleFonts.cairo(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            label,
-            style: GoogleFonts.cairo(
-              fontSize: 11,
-              color: AppPalette.textSecondary,
-            ),
-          ),
+          Text(value, style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.bold)),
+          Text(label, style: GoogleFonts.cairo(fontSize: 11, color: AppPalette.textSecondary)),
         ],
       ),
     );
@@ -961,41 +911,19 @@ class SettingsPage extends StatelessWidget {
               color: AppPalette.primaryContainer,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(
-              Icons.storage_rounded,
-              color: AppPalette.primary,
-              size: 20,
-            ),
+            child: const Icon(Icons.storage_rounded, color: AppPalette.primary, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  backup.fileName,
-                  style: GoogleFonts.cairo(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                Text(backup.fileName, style: GoogleFonts.cairo(fontSize: 13, fontWeight: FontWeight.w500)),
                 Row(
                   children: [
-                    Text(
-                      backup.formattedDate,
-                      style: GoogleFonts.cairo(
-                        fontSize: 11,
-                        color: AppPalette.textHint,
-                      ),
-                    ),
+                    Text(backup.formattedDate, style: GoogleFonts.cairo(fontSize: 11, color: AppPalette.textHint)),
                     const SizedBox(width: 8),
-                    Text(
-                      backup.formattedSize,
-                      style: GoogleFonts.cairo(
-                        fontSize: 11,
-                        color: AppPalette.textHint,
-                      ),
-                    ),
+                    Text(backup.formattedSize, style: GoogleFonts.cairo(fontSize: 11, color: AppPalette.textHint)),
                   ],
                 ),
               ],
@@ -1004,17 +932,8 @@ class SettingsPage extends StatelessWidget {
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert_rounded),
             onSelected: (value) {
-              switch (value) {
-                case 'restore':
-                  controller.restoreBackup(backup.path);
-                  break;
-                case 'export':
-                  controller.exportBackup(backup.path);
-                  break;
-                case 'delete':
-                  controller.deleteBackup(backup.path);
-                  break;
-              }
+              if (value == 'restore') controller.restoreBackup(backup.path);
+              if (value == 'delete') controller.deleteBackup(backup.path);
             },
             itemBuilder: (context) => [
               PopupMenuItem(
@@ -1024,16 +943,6 @@ class SettingsPage extends StatelessWidget {
                     const Icon(Icons.restore_rounded),
                     const SizedBox(width: 8),
                     Text('استعادة', style: GoogleFonts.cairo()),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'export',
-                child: Row(
-                  children: [
-                    const Icon(Icons.share_rounded),
-                    const SizedBox(width: 8),
-                    Text('تصدير', style: GoogleFonts.cairo()),
                   ],
                 ),
               ),

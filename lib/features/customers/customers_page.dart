@@ -799,117 +799,151 @@ class CustomersPage extends StatelessWidget {
     final addressController = TextEditingController();
     final descriptionController = TextEditingController();
     final openingBalanceController = TextEditingController();
+    String selectedCurrency = 'ر.س';
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('إضافة عميل جديد', style: GoogleFonts.cairo()),
-        content: SingleChildScrollView(
-          child: SizedBox(
-            width: 400,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AppTextField(
-                  controller: nameController,
-                  hintText: 'اسم العميل *',
-                  prefixIconData: Icons.person_rounded,
-                ),
-                const SizedBox(height: 12),
-                AppTextField(
-                  controller: phoneController,
-                  hintText: 'رقم الهاتف',
-                  prefixIconData: Icons.phone_rounded,
-                  keyboardType: TextInputType.phone,
-                ),
-                const SizedBox(height: 12),
-                AppTextField(
-                  controller: addressController,
-                  hintText: 'العنوان',
-                  prefixIconData: Icons.location_on_rounded,
-                ),
-                const SizedBox(height: 12),
-                AppTextField(
-                  controller: descriptionController,
-                  hintText: 'ملاحظات',
-                  prefixIconData: Icons.description_rounded,
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 12),
-                AppCurrencyField(
-                  controller: openingBalanceController,
-                  hintText: 'الرصيد الافتتاحي (دين)',
-                ),
-              ],
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text('إضافة عميل جديد', style: GoogleFonts.cairo()),
+          content: SingleChildScrollView(
+            child: SizedBox(
+              width: 400,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppTextField(
+                    controller: nameController,
+                    hintText: 'اسم العميل *',
+                    prefixIconData: Icons.person_rounded,
+                  ),
+                  const SizedBox(height: 12),
+                  AppTextField(
+                    controller: phoneController,
+                    hintText: 'رقم الهاتف',
+                    prefixIconData: Icons.phone_rounded,
+                    keyboardType: TextInputType.phone,
+                  ),
+                  const SizedBox(height: 12),
+                  AppTextField(
+                    controller: addressController,
+                    hintText: 'العنوان',
+                    prefixIconData: Icons.location_on_rounded,
+                  ),
+                  const SizedBox(height: 12),
+                  // Currency Selection
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'العملة المفضلة للتعامل',
+                        style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: AppCurrency.available.take(4).map((currency) {
+                          final isSelected = selectedCurrency == currency.symbol;
+                          return ChoiceChip(
+                            label: Text(currency.symbol),
+                            selected: isSelected,
+                            onSelected: (_) => setState(() => selectedCurrency = currency.symbol),
+                            selectedColor: AppPalette.primaryContainer,
+                            labelStyle: GoogleFonts.cairo(
+                              fontSize: 12,
+                              color: isSelected ? AppPalette.primary : AppPalette.textSecondary,
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  AppTextField(
+                    controller: descriptionController,
+                    hintText: 'ملاحظات',
+                    prefixIconData: Icons.description_rounded,
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 12),
+                  AppCurrencyField(
+                    controller: openingBalanceController,
+                    hintText: 'الرصيد الافتتاحي (دين)',
+                    currencySymbol: selectedCurrency,
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('إلغاء', style: GoogleFonts.cairo()),
-          ),
-          Obx(() => ElevatedButton(
-            onPressed: controller.isSaving.value
-                ? null
-                : () async {
-                    if (nameController.text.isEmpty) {
-                      Get.snackbar(
-                        'خطأ',
-                        'يرجى إدخال اسم العميل',
-                        backgroundColor: AppPalette.expenseContainer,
-                        colorText: AppPalette.expense,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('إلغاء', style: GoogleFonts.cairo()),
+            ),
+            Obx(() => ElevatedButton(
+              onPressed: controller.isSaving.value
+                  ? null
+                  : () async {
+                      if (nameController.text.isEmpty) {
+                        Get.snackbar(
+                          'خطأ',
+                          'يرجى إدخال اسم العميل',
+                          backgroundColor: AppPalette.expenseContainer,
+                          colorText: AppPalette.expense,
+                        );
+                        return;
+                      }
+
+                      final customer = Customer(
+                        name: nameController.text,
+                        phone: phoneController.text,
+                        address: addressController.text,
+                        description: descriptionController.text,
+                        currency: selectedCurrency,
                       );
-                      return;
-                    }
 
-                    final customer = Customer(
-                      name: nameController.text,
-                      phone: phoneController.text,
-                      address: addressController.text,
-                      description: descriptionController.text,
-                    );
+                      final result = await controller.addCustomer(customer);
 
-                    final result = await controller.addCustomer(customer);
+                      // Add opening balance if provided
+                      if (result.isSuccess && openingBalanceController.text.isNotEmpty) {
+                        final balance = double.tryParse(openingBalanceController.text);
+                        if (balance != null && balance > 0) {
+                          await controller.recordOpeningBalance(
+                            customerId: result.data!,
+                            amount: balance,
+                          );
+                        }
+                      }
 
-                    // Add opening balance if provided
-                    if (result.isSuccess && openingBalanceController.text.isNotEmpty) {
-                      final balance = double.tryParse(openingBalanceController.text);
-                      if (balance != null && balance > 0) {
-                        await controller.recordOpeningBalance(
-                          customerId: result.data!,
-                          amount: balance,
+                      Navigator.pop(context);
+
+                      if (result.isSuccess) {
+                        Get.snackbar(
+                          'تم',
+                          'تم إضافة العميل بنجاح',
+                          backgroundColor: AppPalette.incomeContainer,
+                          colorText: AppPalette.income,
+                        );
+                      } else {
+                        Get.snackbar(
+                          'خطأ',
+                          result.errorMessage ?? 'فشل في إضافة العميل',
+                          backgroundColor: AppPalette.expenseContainer,
+                          colorText: AppPalette.expense,
                         );
                       }
-                    }
-
-                    Navigator.pop(context);
-
-                    if (result.isSuccess) {
-                      Get.snackbar(
-                        'تم',
-                        'تم إضافة العميل بنجاح',
-                        backgroundColor: AppPalette.incomeContainer,
-                        colorText: AppPalette.income,
-                      );
-                    } else {
-                      Get.snackbar(
-                        'خطأ',
-                        result.errorMessage ?? 'فشل في إضافة العميل',
-                        backgroundColor: AppPalette.expenseContainer,
-                        colorText: AppPalette.expense,
-                      );
-                    }
-                  },
-            child: controller.isSaving.value
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text('حفظ', style: GoogleFonts.cairo()),
-          )),
-        ],
+                    },
+              child: controller.isSaving.value
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text('حفظ', style: GoogleFonts.cairo()),
+            )),
+          ],
+        ),
       ),
     );
   }
@@ -923,92 +957,125 @@ class CustomersPage extends StatelessWidget {
     final phoneController = TextEditingController(text: customer.phone);
     final addressController = TextEditingController(text: customer.address);
     final descriptionController = TextEditingController(text: customer.description);
+    String selectedCurrency = customer.currency;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('تعديل العميل', style: GoogleFonts.cairo()),
-        content: SingleChildScrollView(
-          child: SizedBox(
-            width: 400,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AppTextField(
-                  controller: nameController,
-                  hintText: 'اسم العميل *',
-                  prefixIconData: Icons.person_rounded,
-                ),
-                const SizedBox(height: 12),
-                AppTextField(
-                  controller: phoneController,
-                  hintText: 'رقم الهاتف',
-                  prefixIconData: Icons.phone_rounded,
-                  keyboardType: TextInputType.phone,
-                ),
-                const SizedBox(height: 12),
-                AppTextField(
-                  controller: addressController,
-                  hintText: 'العنوان',
-                  prefixIconData: Icons.location_on_rounded,
-                ),
-                const SizedBox(height: 12),
-                AppTextField(
-                  controller: descriptionController,
-                  hintText: 'ملاحظات',
-                  prefixIconData: Icons.description_rounded,
-                  maxLines: 2,
-                ),
-              ],
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text('تعديل العميل', style: GoogleFonts.cairo()),
+          content: SingleChildScrollView(
+            child: SizedBox(
+              width: 400,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppTextField(
+                    controller: nameController,
+                    hintText: 'اسم العميل *',
+                    prefixIconData: Icons.person_rounded,
+                  ),
+                  const SizedBox(height: 12),
+                  AppTextField(
+                    controller: phoneController,
+                    hintText: 'رقم الهاتف',
+                    prefixIconData: Icons.phone_rounded,
+                    keyboardType: TextInputType.phone,
+                  ),
+                  const SizedBox(height: 12),
+                  AppTextField(
+                    controller: addressController,
+                    hintText: 'العنوان',
+                    prefixIconData: Icons.location_on_rounded,
+                  ),
+                  const SizedBox(height: 12),
+                  // Currency Selection
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'العملة المفضلة للتعامل',
+                        style: GoogleFonts.cairo(fontSize: 14, fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: AppCurrency.available.take(4).map((currency) {
+                          final isSelected = selectedCurrency == currency.symbol;
+                          return ChoiceChip(
+                            label: Text(currency.symbol),
+                            selected: isSelected,
+                            onSelected: (_) => setState(() => selectedCurrency = currency.symbol),
+                            selectedColor: AppPalette.primaryContainer,
+                            labelStyle: GoogleFonts.cairo(
+                              fontSize: 12,
+                              color: isSelected ? AppPalette.primary : AppPalette.textSecondary,
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  AppTextField(
+                    controller: descriptionController,
+                    hintText: 'ملاحظات',
+                    prefixIconData: Icons.description_rounded,
+                    maxLines: 2,
+                  ),
+                ],
+              ),
             ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('إلغاء', style: GoogleFonts.cairo()),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (nameController.text.isEmpty) {
+                  Get.snackbar(
+                    'خطأ',
+                    'يرجى إدخال اسم العميل',
+                    backgroundColor: AppPalette.expenseContainer,
+                    colorText: AppPalette.expense,
+                  );
+                  return;
+                }
+
+                final updatedCustomer = customer.copyWith(
+                  name: nameController.text,
+                  phone: phoneController.text,
+                  address: addressController.text,
+                  description: descriptionController.text,
+                  currency: selectedCurrency,
+                );
+
+                final result = await controller.updateCustomer(updatedCustomer, customer);
+                Navigator.pop(context);
+
+                if (result.isSuccess) {
+                  Get.snackbar(
+                    'تم',
+                    'تم تحديث العميل بنجاح',
+                    backgroundColor: AppPalette.incomeContainer,
+                    colorText: AppPalette.income,
+                  );
+                } else {
+                  Get.snackbar(
+                    'خطأ',
+                    result.errorMessage ?? 'فشل في تحديث العميل',
+                    backgroundColor: AppPalette.expenseContainer,
+                    colorText: AppPalette.expense,
+                  );
+                }
+              },
+              child: Text('حفظ', style: GoogleFonts.cairo()),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('إلغاء', style: GoogleFonts.cairo()),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (nameController.text.isEmpty) {
-                Get.snackbar(
-                  'خطأ',
-                  'يرجى إدخال اسم العميل',
-                  backgroundColor: AppPalette.expenseContainer,
-                  colorText: AppPalette.expense,
-                );
-                return;
-              }
-
-              final updatedCustomer = customer.copyWith(
-                name: nameController.text,
-                phone: phoneController.text,
-                address: addressController.text,
-                description: descriptionController.text,
-              );
-
-              final result = await controller.updateCustomer(updatedCustomer, customer);
-              Navigator.pop(context);
-
-              if (result.isSuccess) {
-                Get.snackbar(
-                  'تم',
-                  'تم تحديث العميل بنجاح',
-                  backgroundColor: AppPalette.incomeContainer,
-                  colorText: AppPalette.income,
-                );
-              } else {
-                Get.snackbar(
-                  'خطأ',
-                  result.errorMessage ?? 'فشل في تحديث العميل',
-                  backgroundColor: AppPalette.expenseContainer,
-                  colorText: AppPalette.expense,
-                );
-              }
-            },
-            child: Text('حفظ', style: GoogleFonts.cairo()),
-          ),
-        ],
       ),
     );
   }
