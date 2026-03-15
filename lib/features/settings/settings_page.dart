@@ -18,7 +18,7 @@ class SettingsController extends GetxController {
   RxString taxNumber = ''.obs;
   RxString companyPhone = ''.obs;
   RxString companyAddress = ''.obs;
-  RxString? companyLogoPath = Rx(null);
+  RxnString companyLogoPath = RxnString();
   
   // Printer Settings
   RxString selectedPrinterType = 'thermal'.obs; // thermal, normal
@@ -432,7 +432,7 @@ class SettingsPage extends StatelessWidget {
           AppTextField(
             initialValue: controller.companyName.value,
             hintText: 'اسم المحل/المؤسسة',
-            prefixIcon: Icons.store_rounded,
+            prefixIconData: Icons.store_rounded,
             onChanged: (value) => controller.companyName.value = value,
           ),
           const SizedBox(height: 12),
@@ -441,7 +441,7 @@ class SettingsPage extends StatelessWidget {
           AppTextField(
             initialValue: controller.companyBranch.value,
             hintText: 'اسم الفرع',
-            prefixIcon: Icons.storefront_rounded,
+            prefixIconData: Icons.storefront_rounded,
             onChanged: (value) => controller.companyBranch.value = value,
           ),
           const SizedBox(height: 12),
@@ -450,7 +450,7 @@ class SettingsPage extends StatelessWidget {
           AppTextField(
             initialValue: controller.taxNumber.value,
             hintText: 'الرقم الضريبي',
-            prefixIcon: Icons.receipt_long_rounded,
+            prefixIconData: Icons.receipt_long_rounded,
             keyboardType: TextInputType.number,
             onChanged: (value) => controller.taxNumber.value = value,
           ),
@@ -460,7 +460,7 @@ class SettingsPage extends StatelessWidget {
           AppTextField(
             initialValue: controller.companyPhone.value,
             hintText: 'رقم الهاتف',
-            prefixIcon: Icons.phone_rounded,
+            prefixIconData: Icons.phone_rounded,
             keyboardType: TextInputType.phone,
             onChanged: (value) => controller.companyPhone.value = value,
           ),
@@ -470,7 +470,7 @@ class SettingsPage extends StatelessWidget {
           AppTextField(
             initialValue: controller.companyAddress.value,
             hintText: 'العنوان',
-            prefixIcon: Icons.location_on_rounded,
+            prefixIconData: Icons.location_on_rounded,
             onChanged: (value) => controller.companyAddress.value = value,
           ),
           const SizedBox(height: 20),

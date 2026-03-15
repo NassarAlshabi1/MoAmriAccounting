@@ -37,7 +37,7 @@ class SuppliersDatabase {
 
   /// Insert a new supplier
   static Future<int> insertSupplier(Supplier supplier) async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     return await db.insert(
       'suppliers',
       supplier.toMap(),
@@ -47,7 +47,7 @@ class SuppliersDatabase {
 
   /// Update an existing supplier
   static Future<int> updateSupplier(Supplier supplier) async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     return await db.update(
       'suppliers',
       supplier.copyWith(updatedAt: DateTime.now()).toMap(),
@@ -58,7 +58,7 @@ class SuppliersDatabase {
 
   /// Delete a supplier
   static Future<int> deleteSupplier(int id) async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     // First delete all transactions
     await db.delete(
       'supplier_transactions',
@@ -78,7 +78,7 @@ class SuppliersDatabase {
     String orderBy = 'name',
     bool ascending = true,
   }) async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     final results = await db.query(
       'suppliers',
       orderBy: '$orderBy ${ascending ? 'ASC' : 'DESC'}',
@@ -88,7 +88,7 @@ class SuppliersDatabase {
 
   /// Get supplier by ID
   static Future<Supplier?> getSupplierById(int id) async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     final results = await db.query(
       'suppliers',
       where: 'id = ?',
@@ -101,7 +101,7 @@ class SuppliersDatabase {
 
   /// Search suppliers by name or phone
   static Future<List<Supplier>> searchSuppliers(String query) async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     final results = await db.query(
       'suppliers',
       where: 'name LIKE ? OR phone LIKE ?',
@@ -112,7 +112,7 @@ class SuppliersDatabase {
 
   /// Get suppliers with debts
   static Future<List<Supplier>> getSuppliersWithDebts() async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     final results = await db.query(
       'suppliers',
       where: 'balance > 0',
@@ -123,7 +123,7 @@ class SuppliersDatabase {
 
   /// Get suppliers count
   static Future<int> getSuppliersCount() async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     final results = await db.rawQuery(
       'SELECT COUNT(*) as count FROM suppliers',
     );
@@ -132,7 +132,7 @@ class SuppliersDatabase {
 
   /// Get total debts to suppliers
   static Future<double> getTotalDebtsToSuppliers() async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     final results = await db.rawQuery(
       'SELECT SUM(balance) as total FROM suppliers WHERE balance > 0',
     );
@@ -143,7 +143,7 @@ class SuppliersDatabase {
 
   /// Add a transaction for a supplier
   static Future<int> addTransaction(SupplierTransaction transaction) async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     
     // Start a transaction
     return await db.transaction((txn) async {
@@ -173,7 +173,7 @@ class SuppliersDatabase {
     int limit = 50,
     int offset = 0,
   }) async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     final results = await db.query(
       'supplier_transactions',
       where: 'supplierId = ?',
@@ -191,7 +191,7 @@ class SuppliersDatabase {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     
     String whereClause = 'supplierId = ?';
     List<dynamic> whereArgs = [supplierId];
@@ -219,7 +219,7 @@ class SuppliersDatabase {
   static Future<List<Map<String, dynamic>>> getRecentSupplierTransactions({
     int limit = 20,
   }) async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     final results = await db.rawQuery('''
       SELECT st.*, s.name as supplierName
       FROM supplier_transactions st

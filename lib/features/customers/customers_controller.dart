@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moamri_accounting/database/entities/customer.dart';
 import 'package:moamri_accounting/database/entities/customer_transaction.dart';
+import 'package:moamri_accounting/database/entities/user.dart';
 import 'package:moamri_accounting/database/customers_database.dart';
 import 'package:moamri_accounting/database/customer_transactions_database.dart';
 import 'package:moamri_accounting/utils/result.dart';
@@ -10,6 +11,8 @@ import 'package:moamri_accounting/utils/result.dart';
 ///
 /// Manages customers state, account statements, and payment tracking.
 class CustomersController extends GetxController {
+  // Current user
+  User? currentUser;
   // State
   RxList<Customer> customers = <Customer>[].obs;
   RxList<Customer> filteredCustomers = <Customer>[].obs;
@@ -59,11 +62,14 @@ class CustomersController extends GetxController {
     errorMessage.value = '';
 
     try {
+      // Get current user from main controller
+      final mainController = Get.find<dynamic>();
+      currentUser = mainController.currentUser?.value;
+
       // Load customers count
       totalCustomers.value = await CustomersDatabase.getCustomersCount();
 
       // Load customers with debts from existing database
-      final mainController = Get.find<dynamic>();
       final customersWithDebts = await CustomersDatabase.getCustomersWithDebts(
         mainController,
         0,
@@ -311,5 +317,58 @@ class CustomersController extends GetxController {
   /// Get customers with debts list
   Future<List<Map<String, dynamic>>> getCustomersWithDebtsList() async {
     return await CustomerTransactionsDatabase.getCustomersWithDebts();
+  }
+
+  /// Add a new customer
+  Future<Result<int>> addCustomer(Customer customer) async {
+    isSaving.value = true;
+    try {
+      if (currentUser == null) {
+        return Result.failure('المستخدم غير مسجل الدخول');
+      }
+      
+      // Insert customer into database
+      final id = await CustomersDatabase.insertCustomer(customer, currentUser!);
+      
+      // Refresh the list
+      await loadInitialData();
+      
+      isSaving.value = false;
+      return Result.success(id);
+    } catch (e) {
+      isSaving.value = false;
+      return Result.failure('فشل في إضافة العميل: $e');
+    }
+  }
+
+  /// Update an existing customer
+  Future<Result<void>> updateCustomer(Customer updatedCustomer, Customer oldCustomer) async {
+    isSaving.value = true;
+    try {
+      if (currentUser == null) {
+        return Result.failure('المستخدم غير مسجل الدخول');
+      }
+      
+      // Update customer in database
+      await CustomersDatabase.updateCustomer(updatedCustomer, oldCustomer, currentUser!);
+      
+      // Update in local list
+      final index = customers.indexWhere((c) => c.id == updatedCustomer.id);
+      if (index != -1) {
+        customers[index] = updatedCustomer;
+        applyFilter();
+      }
+      
+      // Update selected customer if it's the same
+      if (selectedCustomer.value?.id == updatedCustomer.id) {
+        selectedCustomer.value = updatedCustomer;
+      }
+      
+      isSaving.value = false;
+      return Result.success(null);
+    } catch (e) {
+      isSaving.value = false;
+      return Result.failure('فشل في تحديث العميل: $e');
+    }
   }
 }

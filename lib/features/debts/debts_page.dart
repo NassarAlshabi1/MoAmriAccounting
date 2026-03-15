@@ -420,7 +420,7 @@ class _DebtsPageState extends State<DebtsPage> with SingleTickerProviderStateMix
                             children: [
                               Expanded(
                                 child: Text(
-                                  isReceivable ? debt.customerName : debt.supplierName,
+                                  isReceivable ? (debt.customerName ?? 'غير محدد') : (debt.supplierName ?? 'غير محدد'),
                                   style: GoogleFonts.cairo(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -784,7 +784,7 @@ class _FilterBarDelegate extends SliverPersistentHeaderDelegate {
   }
 
   Widget _buildFilterChip(String label, String value) {
-    final isSelected = selectedFilter === value;
+    final isSelected = selectedFilter == value;
     return FilterChip(
       label: Text(label),
       selected: isSelected,

@@ -7,6 +7,7 @@ import '../controllers/main_controller.dart';
 import '../customers/pages/customers_page.dart';
 import '../inventory/pages/inventory_page.dart';
 import '../theme/app_colors.dart';
+import '../shared/theme/app_palette.dart';
 import '../theme/app_theme.dart';
 import '../theme/custom_widgets_theme.dart';
 import '../features/suppliers/suppliers_page.dart';
@@ -618,7 +619,7 @@ class _HomePageState extends State<HomePage> {
         break;
       case 6:
         // Sales invoices - navigate to existing page
-        page = const SalePage();
+        page = SalePage();
         break;
       case 7:
         // Purchase invoices - placeholder
@@ -663,14 +664,14 @@ class _HomePageState extends State<HomePage> {
             Icon(
               Icons.construction_rounded,
               size: 64,
-              color: AppColors.textHint,
+              color: AppPalette.textHint,
             ),
             const SizedBox(height: 16),
             Text(
               'هذه الميزة قيد التطوير',
               style: TextStyle(
                 fontSize: 18,
-                color: AppColors.textSecondary,
+                color: AppPalette.textSecondary,
               ),
             ),
           ],

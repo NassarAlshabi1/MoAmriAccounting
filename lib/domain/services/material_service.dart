@@ -53,7 +53,7 @@ class MaterialService {
 
         // Move to the next larger material
         currentItem.largerMaterial?.smallerMaterial = currentItem;
-        currentItem = currentItem.largerMaterial;
+        currentItem = currentItem.largerMaterial!;
       }
 
       return Result.success(availableQuantity);

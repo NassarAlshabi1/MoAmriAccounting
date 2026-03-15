@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moamri_accounting/dialogs/alerts_dialogs.dart';
 import 'package:moamri_accounting/theme/custom_widgets_theme.dart';
+import 'package:moamri_accounting/sale/dialogs/sale_material_dialog.dart';
 
 import '../controllers/sale_controller.dart';
 import '../../controllers/main_controller.dart';

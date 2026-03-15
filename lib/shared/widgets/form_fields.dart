@@ -13,6 +13,8 @@ import '../theme/app_palette.dart';
 class AppTextField extends StatelessWidget {
   final String? label;
   final String? hint;
+  final String? hintText; // Alias for hint for convenience
+  final String? initialValue;
   final TextEditingController? controller;
   final String? Function(String?)? validator;
   final TextInputType? keyboardType;
@@ -23,6 +25,7 @@ class AppTextField extends StatelessWidget {
   final int? minLines;
   final int? maxLength;
   final Widget? prefixIcon;
+  final IconData? prefixIconData; // Convenience: accepts IconData directly
   final Widget? suffixIcon;
   final VoidCallback? onTap;
   final void Function(String)? onChanged;
@@ -37,6 +40,8 @@ class AppTextField extends StatelessWidget {
     super.key,
     this.label,
     this.hint,
+    this.hintText,
+    this.initialValue,
     this.controller,
     this.validator,
     this.keyboardType,
@@ -47,6 +52,7 @@ class AppTextField extends StatelessWidget {
     this.minLines,
     this.maxLength,
     this.prefixIcon,
+    this.prefixIconData,
     this.suffixIcon,
     this.onTap,
     this.onChanged,
@@ -57,6 +63,16 @@ class AppTextField extends StatelessWidget {
     this.inputFormatters,
     this.textCapitalization = TextCapitalization.none,
   });
+
+  /// Get the effective hint text
+  String? get _effectiveHint => hintText ?? hint;
+
+  /// Get the effective prefix icon widget
+  Widget? get _effectivePrefixIcon {
+    if (prefixIcon != null) return prefixIcon;
+    if (prefixIconData != null) return Icon(prefixIconData);
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,6 +93,7 @@ class AppTextField extends StatelessWidget {
         ],
         TextFormField(
           controller: controller,
+          initialValue: initialValue,
           validator: validator,
           keyboardType: keyboardType,
           obscureText: obscureText,
@@ -98,8 +115,8 @@ class AppTextField extends StatelessWidget {
             color: enabled ? AppPalette.textPrimary : AppPalette.textDisabled,
           ),
           decoration: InputDecoration(
-            hintText: hint,
-            prefixIcon: prefixIcon,
+            hintText: _effectiveHint,
+            prefixIcon: _effectivePrefixIcon,
             suffixIcon: suffixIcon,
           ),
         ),
@@ -124,6 +141,9 @@ class AppCurrencyField extends StatelessWidget {
   final VoidCallback? onTap;
   final void Function(String)? onChanged;
   final FocusNode? focusNode;
+  final String? hint;
+  final String? hintText;
+  final String? initialValue;
 
   const AppCurrencyField({
     super.key,
@@ -136,6 +156,9 @@ class AppCurrencyField extends StatelessWidget {
     this.onTap,
     this.onChanged,
     this.focusNode,
+    this.hint,
+    this.hintText,
+    this.initialValue,
   });
 
   Color get _currencyColor {
@@ -158,6 +181,7 @@ class AppCurrencyField extends StatelessWidget {
     return AppTextField(
       label: label,
       controller: controller,
+      initialValue: initialValue,
       validator: validator,
       enabled: enabled,
       onTap: onTap,
@@ -183,7 +207,7 @@ class AppCurrencyField extends StatelessWidget {
           ),
         ),
       ),
-      hint: '0.00',
+      hint: hintText ?? hint ?? '0.00',
     );
   }
 }

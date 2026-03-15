@@ -111,9 +111,9 @@ class CacheService extends GetxService {
   }
 
   /// Get or set list (lazy loading)
-  Future<List<T>>> getOrSetList<T>(
+  Future<List<T>> getOrSetList<T>(
     String key,
-    Future<List<T>>> Function() fetcher, {
+    Future<List<T>> Function() fetcher, {
     Duration? ttl,
     required T Function(Map<String, dynamic>) fromJson,
   }) async {

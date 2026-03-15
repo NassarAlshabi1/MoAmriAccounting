@@ -47,6 +47,9 @@ sealed class Result<T> {
         Failure<T>(message: final m) => m,
       };
 
+  /// Alias for message - Get the error message (null if success)
+  String? get errorMessage => message;
+
   /// Get the exception (null if success)
   Object? get exception => switch (this) {
         Success<T>() => null,

@@ -62,6 +62,13 @@ dependencies:
   local_auth: ^2.1.8
   flutter_secure_storage: ^9.0.0
 
+  # UI
+  google_fonts: ^6.1.0
+
+  # File & Sharing
+  image_picker: ^1.0.4
+  share_plus: ^7.2.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

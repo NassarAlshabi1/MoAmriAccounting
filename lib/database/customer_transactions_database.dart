@@ -26,7 +26,7 @@ class CustomerTransactionsDatabase {
 
   /// Add a transaction for a customer
   static Future<int> addTransaction(CustomerTransaction transaction) async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     
     return await db.transaction((txn) async {
       // Insert the transaction
@@ -75,7 +75,7 @@ class CustomerTransactionsDatabase {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     
     String whereClause = 'customerId = ?';
     List<dynamic> whereArgs = [customerId];
@@ -113,7 +113,7 @@ class CustomerTransactionsDatabase {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     
     String whereClause = 'customerId = ?';
     List<dynamic> whereArgs = [customerId];
@@ -179,7 +179,7 @@ class CustomerTransactionsDatabase {
 
   /// Get customer balance
   static Future<double> getCustomerBalance(int customerId) async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     final result = await db.rawQuery(
       'SELECT IFNULL(balance, 0) as balance FROM customers WHERE id = ?',
       [customerId],
@@ -191,7 +191,7 @@ class CustomerTransactionsDatabase {
   static Future<List<Map<String, dynamic>>> getRecentTransactions({
     int limit = 20,
   }) async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     final results = await db.rawQuery('''
       SELECT ct.*, c.name as customerName, c.phone as customerPhone
       FROM customer_transactions ct
@@ -204,7 +204,7 @@ class CustomerTransactionsDatabase {
 
   /// Delete a transaction (with balance adjustment)
   static Future<void> deleteTransaction(int transactionId) async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     
     await db.transaction((txn) async {
       // Get the transaction first
@@ -239,7 +239,7 @@ class CustomerTransactionsDatabase {
 
   /// Get total debts for all customers
   static Future<double> getTotalCustomerDebts() async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     final result = await db.rawQuery(
       'SELECT SUM(IFNULL(balance, 0)) as total FROM customers WHERE balance > 0',
     );
@@ -253,7 +253,7 @@ class CustomerTransactionsDatabase {
     bool descending = true,
     int limit = 50,
   }) async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     final results = await db.rawQuery('''
       SELECT id, name, phone, address, IFNULL(balance, 0) as balance
       FROM customers
@@ -266,7 +266,7 @@ class CustomerTransactionsDatabase {
 
   /// Get daily sales summary
   static Future<Map<String, dynamic>> getDailySummary(DateTime date) async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
     
@@ -317,7 +317,7 @@ class CustomerTransactionsDatabase {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     
     String whereClause = "type = 'invoice'";
     List<dynamic> whereArgs = [];
@@ -344,7 +344,7 @@ class CustomerTransactionsDatabase {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     
     String whereClause = "type = 'payment'";
     List<dynamic> whereArgs = [];
@@ -368,7 +368,7 @@ class CustomerTransactionsDatabase {
 
   /// Count customers with debts
   static Future<int> countCustomersWithDebts() async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     final result = await db.rawQuery(
       'SELECT COUNT(*) as count FROM customers WHERE IFNULL(balance, 0) > 0',
     );
@@ -380,7 +380,7 @@ class CustomerTransactionsDatabase {
     int overdueDays = 30,
     int limit = 50,
   }) async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     final cutoffDate = DateTime.now().subtract(Duration(days: overdueDays));
     
     final results = await db.rawQuery('''
@@ -400,7 +400,7 @@ class CustomerTransactionsDatabase {
 
   /// Search customers by name or phone
   static Future<List<Map<String, dynamic>>> searchCustomers(String query) async {
-    final db = await MyDatabase.getInstance();
+    final db = MyDatabase.myDatabase;
     final trimQuery = query.trim();
     
     final results = await db.rawQuery('''

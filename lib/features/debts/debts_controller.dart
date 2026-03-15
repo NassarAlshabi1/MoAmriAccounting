@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:moamri_accounting/database/my_database.dart';
 import 'package:moamri_accounting/database/entities/debt.dart';
@@ -208,7 +209,7 @@ class DebtsController extends GetxController with GetTickerProviderStateMixin {
 
   /// Get filtered debts
   List<DebtModel> getFilteredDebts(bool isReceivable) {
-    var debts = isReceivable ? receivableDebts : payableDebts;
+    List<DebtModel> debts = isReceivable ? receivableDebts.toList() : payableDebts.toList();
 
     // Apply search
     if (searchQuery.value.isNotEmpty) {
@@ -235,7 +236,7 @@ class DebtsController extends GetxController with GetTickerProviderStateMixin {
         break;
     }
 
-    return debts.toList();
+    return debts;
   }
 
   /// Calculate total receivable
