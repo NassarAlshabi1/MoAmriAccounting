@@ -1091,7 +1091,12 @@ class SettingsPage extends StatelessWidget {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeThumbColor: AppPalette.primary,
+            thumbColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return AppPalette.primary;
+              }
+              return null;
+            }),
           ),
         ],
       ),

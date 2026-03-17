@@ -344,7 +344,7 @@ class AppDropdownField<T> extends StatelessWidget {
           const SizedBox(height: 8),
         ],
         DropdownButtonFormField<T>(
-          initialValue: value,
+          value: value,
           items: items
               .map((item) => DropdownMenuItem<T>(
                     value: item.value,
