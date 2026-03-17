@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Calculator/Accounting icon -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M26,20h56c3.3,0 6,2.7 6,6v56c0,3.3 -2.7,6 -6,6H26c-3.3,0 -6,-2.7 -6,-6V26C20,22.7 22.7,20 26,20z"/>
+    <path
+        android:fillColor="#3DDC84"
+        android:pathData="M30,30h48v20H30z"/>
+    <path
+        android:fillColor="#555555"
+        android:pathData="M34,58h8v8h-8z"/>
+    <path
+        android:fillColor="#555555"
+        android:pathData="M46,58h8v8h-8z"/>
+    <path
+        android:fillColor="#555555"
+        android:pathData="M58,58h8v8h-8z"/>
+    <path
+        android:fillColor="#555555"
+        android:pathData="M34,70h8v8h-8z"/>
+    <path
+        android:fillColor="#555555"
+        android:pathData="M46,70h8v8h-8z"/>
+    <path
+        android:fillColor="#555555"
+        android:pathData="M58,70h8v8h-8z"/>
+</vector>
